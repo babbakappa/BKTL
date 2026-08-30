@@ -37,7 +37,7 @@ fun getDeadLineColor(other_date: String, pattern: String = "dd.MM.yyyy"): Color 
             daysLeft < 0 -> Color.Black //Просрочено совсем
             daysLeft <= 3 -> Color.Red //Горит (0-3 дня)
             daysLeft <= 5 -> Color(0xFFFFA500) //Предупреждение (4-5 дней)
-            else -> Color.Gray
+            else -> Color.White
         }
     } catch (error: Exception) {
         Color.Gray

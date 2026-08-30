@@ -35,9 +35,9 @@ fun ArchiveDialog(
     ) {
         Card(
             modifier = Modifier
-                .fillMaxWidth(0.9f)
-                .heightIn(max = 500.dp)
-                .padding(16.dp),
+                .fillMaxWidth(1f)
+                .heightIn(max = 700.dp)
+                .padding(8.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
