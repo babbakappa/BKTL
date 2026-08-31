@@ -3,18 +3,28 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+composeCompiler {
+    // Для современных версий Gradle используется layout.projectDirectory
+    stabilityConfigurationFile = rootProject.layout.projectDirectory.file("compose_stability_config.txt")
+}
+
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile>().configureEach {
+    compilerOptions {
+        freeCompilerArgs.add("-Xoptimize")
+        freeCompilerArgs.add("-Xsam-conversions=class")
+    }
+}
+
 android {
     namespace = "home.babbakappa.bktl"
-    compileSdk {
-        version = release(37)
-    }
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "home.babbakappa.bktl"
         minSdk = 26
         targetSdk = 37
         versionCode = 1
-        versionName = "1.4"
+        versionName = "1.4.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -22,8 +32,19 @@ android {
     buildTypes {
         release {
             optimization {
-                enable = false
+                enable = true
             }
+
+            isMinifyEnabled = true
+
+            isShrinkResources = true
+
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+
+            //isZipAlignEnabled = true
         }
     }
     compileOptions {
@@ -33,6 +54,21 @@ android {
     buildFeatures {
         compose = true
     }
+
+    bundle {
+        density { enableSplit = true }
+        abi { enableSplit = true }
+        language { enableSplit = true }
+    }
+
+    packaging {
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            excludes += "/META-INF/LICENSE*"
+            excludes += "/META-INF/NOTICE*"
+        }
+    }
+
 }
 
 dependencies {
