@@ -13,6 +13,7 @@ import android.content.Context
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
+import androidx.compose.runtime.Composable
 import androidx.core.content.FileProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -25,23 +26,24 @@ import java.util.*
 import androidx.compose.ui.graphics.Color
 
 //Функция для определения цвета чтобы подсветить дату дедлайна
+@Composable
 fun getDeadLineColor(other_date: String, pattern: String = "dd.MM.yyyy"): Color {
-    return try {
-        val formatter = DateTimeFormatter.ofPattern(pattern)
-        val today = LocalDate.now()
-        val deadline = LocalDate.parse(other_date, formatter)
+    val formatter = DateTimeFormatter.ofPattern(pattern)
+    val today = LocalDate.now()
+    val deadline = LocalDate.parse(other_date, formatter)
 
-        val daysLeft = ChronoUnit.DAYS.between(today, deadline)
+    val daysLeft = ChronoUnit.DAYS.between(today, deadline)
 
-        when {
-            daysLeft < 0 -> Color.Black //Просрочено совсем
-            daysLeft <= 3 -> Color.Red //Горит (0-3 дня)
-            daysLeft <= 5 -> Color(0xFFFFA500) //Предупреждение (4-5 дней)
-            else -> Color.White
-        }
-    } catch (error: Exception) {
-        Color.Gray
+    val rescolor: Color
+
+    when {
+        daysLeft < 0 -> rescolor = Color(0xFFFF00FF) //Просрочено совсем
+        daysLeft <= 3 -> rescolor = Color.Red //Горит (0-3 дня)
+        daysLeft <= 5 -> rescolor = Color(0xFFFFA500) //Предупреждение (4-5 дней)
+        else -> rescolor = SetTextColor()
     }
+
+    return rescolor
 }
 
 //Функция для экспорта отчета в формате xlsx

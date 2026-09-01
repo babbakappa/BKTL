@@ -50,4 +50,18 @@ class TaskList {
     fun DeleteTask(task: Task) {
         MainArray.remove(task)
     }
+
+    fun CreateAndAddNewTaskWithReturn(subjname: String, gr: String, descr: String, cd: String): Task {
+        val temp = Task()
+        temp.CreateTask(subjname, gr, descr, cd)
+        MainArray.add(temp)
+        return temp
+    }
+
+    //Отредактировать задачу по индексу
+    fun EditTaskByIndex(idx: Int, subject: String, gr: String, desc: String, cd: String) {
+        val g = Task()
+        g.CreateTask(subject, gr, desc, cd)
+        MainArray[idx] = g
+    }
 }

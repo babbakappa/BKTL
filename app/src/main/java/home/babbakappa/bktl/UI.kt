@@ -3,8 +3,8 @@
 
 package home.babbakappa.bktl
 
-import android.R
 import android.app.DatePickerDialog
+import android.app.TimePickerDialog
 import android.widget.DatePicker
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -30,6 +30,7 @@ import androidx.compose.ui.focus.focusModifier
 import androidx.compose.material3.AlertDialog
 import android.content.Intent
 import android.widget.Button
+import android.widget.TimePicker
 import androidx.compose.animation.VectorConverter
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
@@ -38,8 +39,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
+import androidx.compose.ui.composed
+import home.babbakappa.bktl.SetTextColor
+import org.apache.poi.ss.formula.functions.Column
 
-enum class DialogType { ADD, DELETE_ALL, ARCHIVE, EXPORT }
+enum class DialogType { ADD, DELETE_ALL, ARCHIVE, EXPORT, EDIT }
 
 //Главная функция, в которой работает интерфейс и используется ядро приложения
 @Composable
@@ -142,13 +146,13 @@ fun TaskListApp() {
         topBar = { TopAppBar(
             title = { Text("Список задач универа", fontSize = 24.sp, fontWeight = FontWeight.Bold) },
             colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = Color(0xFF1656C4),
-                titleContentColor = Color.White
+                containerColor = SetTopColor(),
+                titleContentColor = SetTextColor()
             )
         ) },
 
         //Нижняя панель, которая содержит все кнопки действий
-        bottomBar = { Surface(modifier = Modifier.fillMaxWidth().height((128 + 24 + 64).dp), tonalElevation = 6.dp, color = Color(0xFF3C72CF)) {
+        bottomBar = { Surface(modifier = Modifier.fillMaxWidth().height((128 + 24 + 64).dp), tonalElevation = 6.dp, color = SetBottomColor()) {
 
             //Колонна со всеми кнопками
             Column(
@@ -165,13 +169,28 @@ fun TaskListApp() {
                 ) {
 
                     //Кнопка добавления задачи
-                    Button(onClick = { state = state.copy(dialog = DialogType.ADD) }, colors = ButtonDefaults.buttonColors(contentColor = Color.Black, containerColor = Color.White)) {
+                    Button(onClick = { state = state.copy(dialog = DialogType.ADD) }, colors = ButtonDefaults.buttonColors(contentColor = SetTextColor(), containerColor = SetButtonColor())) {
                         Text("Добавить")
                     }
 
+                    //Кнопка добавления задачи
+                    Button(onClick = { state = state.copy(dialog = DialogType.EDIT) }, colors = ButtonDefaults.buttonColors(contentColor = SetTextColor(), containerColor = SetButtonColor()), enabled = state.selectedIndex != null) {
+                        Text("Редактировать")
+                    }
+
+
+                }
+
+                //Ряд с кнопками
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+
                     //Кнопка удаления выбранной задачи (перенос задачи в архив)
                     Button(
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black),
+                        colors = ButtonDefaults.buttonColors(containerColor = SetButtonColor(), contentColor = SetTextColor()),
                         onClick = {
                             state.selectedIndex?.let { idx ->
                                 if (idx < state.tasks.size) {
@@ -183,31 +202,16 @@ fun TaskListApp() {
                     ) {
                         Text("Удалить выбранное")
                     }
-                }
-
-                //Ряд с кнопками
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
 
                     //Кнопка удаления всех задач
                     Button(
                         onClick = { state = state.copy(dialog = DialogType.DELETE_ALL) },
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.error
+                            containerColor = MaterialTheme.colorScheme.error,
+                            contentColor = Color.White
                         )
                     ) {
                         Text("Удалить все")
-                    }
-
-                    //Кнопка открытия архива задач
-                    Button(
-                        onClick = { state = state.copy(dialog = DialogType.ARCHIVE) },
-                        colors = ButtonDefaults.buttonColors(contentColor = Color.Black, containerColor = Color.White)
-                    ) {
-                        Text("Архив")
                     }
 
                 }
@@ -216,6 +220,15 @@ fun TaskListApp() {
                 Row (modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically) {
+
+                    //Кнопка открытия архива задач
+                    Button(
+                        onClick = { state = state.copy(dialog = DialogType.ARCHIVE) },
+                        colors = ButtonDefaults.buttonColors(contentColor = SetTextColor(), containerColor = SetButtonColor())
+                    ) {
+                        Text("Архив")
+                    }
+
                     Button(onClick = {state = state.copy(dialog = DialogType.EXPORT)},
                         colors = ButtonDefaults.buttonColors(contentColor = Color.White, containerColor = Color(0xFF008000))) {
                         Text("Экспорт в Excel", textAlign = TextAlign.Center)
@@ -227,7 +240,7 @@ fun TaskListApp() {
             }
         }
         },
-        containerColor = Color(0xFFC2D8FF)
+        containerColor = SetBGColor()
     )
 
     //Добавление виджетов в основной экран (сами задачи в виде прямоугольников
@@ -243,7 +256,7 @@ fun TaskListApp() {
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Text("Задач пока нет", fontSize = 20.sp, color = Color.Gray)
+                    Text("Задач пока нет", fontSize = 20.sp, color = SetTextColor())
                 }
             }
 
@@ -279,9 +292,11 @@ fun TaskListApp() {
                 onDismiss = { state = state.copy(dialog = null) },
                 onAdd = { subject, desc, cd, ed ->
                     //Создается объект и добавляется в массив
-                    taskList.CreateAndAddNewTask(subject, desc, cd, ed)
+                    val newTask = taskList.CreateAndAddNewTaskWithReturn(subject, desc, cd, ed)
                     syncState()
                     saveTasks()
+                    NotificationHelper.scheduleNotification(newTask, context)
+
                     state = state.copy(dialog = null)
                 }
             )
@@ -291,21 +306,23 @@ fun TaskListApp() {
         DialogType.DELETE_ALL -> {
             AlertDialog(
                 onDismissRequest = { state = state.copy(dialog = null) },
-                title = { Text("Удалить все задачи?") },
-                text = { Text("Задачи будут перемещены в архив.") },
+                title = { Text("Удалить все задачи?", color = SetTextColor()) },
+                text = { Text("Задачи будут перемещены в архив.", color = SetTextColor()) },
                 confirmButton = {
                     Button(
                         onClick = {
                             moveAllToArchive()
                             state = state.copy(dialog = null)
-                        }
-                    ) { Text("Удалить всё") }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = SetButtonColor())
+                    ) { Text("Удалить всё",  color = SetTextColor()) }
                 },
                 dismissButton = {
                     TextButton(onClick = { state = state.copy(dialog = null) }) {
-                        Text("Отмена")
+                        Text("Отмена",  color = SetTextColor())
                     }
-                }
+                },
+                containerColor = SetTopColor()
             )
         }
 
@@ -344,8 +361,8 @@ fun TaskListApp() {
             val scope = rememberCoroutineScope()
             AlertDialog(
                 onDismissRequest = { state = state.copy(dialog = null) },
-                title = { Text("Экспорт отчёта") },
-                text = { Text("Создать файл с текущими задачами?") },
+                title = { Text("Экспорт отчёта",  color = SetTextColor()) },
+                text = { Text("Создать файл с текущими задачами?", color = SetTextColor()) },
                 confirmButton = {
                     Button(
                         onClick = {
@@ -363,14 +380,36 @@ fun TaskListApp() {
                                 }
                                 state = state.copy(dialog = null)
                             }
-                        }
+                        },
+                        colors = ButtonDefaults.buttonColors(SetButtonColor(), SetTextColor())
                     ) { Text("Экспортировать") }
                 },
                 dismissButton = {
                     TextButton(onClick = { state = state.copy(dialog = null) }) {
-                        Text("Отмена")
+                        Text("Отмена", color = SetTextColor())
                     }
                 }
+                ,containerColor = SetTopColor()
+            )
+        }
+
+        //Если выбрано редактирование задачи
+        DialogType.EDIT -> {
+            val index = state.selectedIndex!!
+            val oldTask = taskList.GetTaskFromArrayByIndex(index)
+            EditTaskDialog(
+                onAdd = { subject, gr, desc, cd ->
+                    NotificationHelper.cancelNotification(oldTask, context)
+                    //Создается объект и добавляется в массив
+                    taskList.EditTaskByIndex(state.selectedIndex!!, subject, gr, desc, cd)
+                    syncState()
+                    saveTasks()
+                    val newTask = taskList.GetTaskFromArrayByIndex(index)
+                    NotificationHelper.scheduleNotification(newTask, context)
+                    state = state.copy(dialog = null)
+                },
+                onDismiss = { state = state.copy(dialog = null) },
+                taskitself = taskList.GetTaskFromArrayByIndex(state.selectedIndex!!)
             )
         }
 
@@ -384,9 +423,9 @@ fun TaskListApp() {
 fun TaskItem(task: Task, isSelected: Boolean, onClick: () -> Unit) {
 
     //Цвет если выделено или не выделено
-    val defcolor = Color(0xFF4F90FF)
+    val defcolor = SetTaskColor()
     var rescolor: Color
-    val selcolor = Color(0xFF30589C)
+    val selcolor = SetSelectedTaskColor()
     if (isSelected) {
         rescolor = selcolor
     }
@@ -403,9 +442,9 @@ fun TaskItem(task: Task, isSelected: Boolean, onClick: () -> Unit) {
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             //Название предмета
-            Text(task.GetSubjectName(), fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Color.White)
+            Text(task.GetSubjectName(), fontWeight = FontWeight.Bold, fontSize = 20.sp, color = SetTextColor())
             //Описание задачи
-            Text(task.GetDescription().replace("[NEWLINE]", "\n"), fontSize = 16.sp, color = Color.White)
+            Text(task.GetDescription().replace("[NEWLINE]", "\n"), fontSize = 16.sp, color = SetTextColor())
 
             //Один ряд с двумя датами
             Row(
@@ -413,10 +452,10 @@ fun TaskItem(task: Task, isSelected: Boolean, onClick: () -> Unit) {
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 //Дата создания
-                Text("Создано: ${task.GetCreationDate()}", fontSize = 13.sp, color = Color.White)
+                Text("Создано: ${task.GetCreationDate()}", fontSize = 13.sp, color = SetTextColor())
 
                 //Определение цвета для даты дедлайна
-                var color = getDeadLineColor(task.GetExpireDate())
+                val color = getDeadLineColor(task.GetExpireDate())
 
                 //Дата дедлайна
                 Text("Дедлайн: ${task.GetExpireDate()}", fontSize = 13.sp, color = color)
@@ -428,6 +467,16 @@ fun TaskItem(task: Task, isSelected: Boolean, onClick: () -> Unit) {
 //Диалог добавления задачи
 @Composable
 fun AddTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, String, String) -> Unit) {
+
+    //Ебучка цвет рамок и текста полей ввода
+    val need_colors = OutlinedTextFieldDefaults.colors(
+        focusedBorderColor = SetTextColor(),       // Цвет рамки при фокусе
+        unfocusedBorderColor = SetBGColor(),     // Цвет рамки без фокуса
+        focusedLabelColor = SetTextColor(),        // Цвет текста подсказки при фокусе
+        unfocusedLabelColor = SetBGColor(),       // Цвет текста подсказки без фокуса
+        focusedTextColor = SetTextColor(),
+        unfocusedTextColor = SetTextColor()
+    )
 
     //Состояния на время диалога
     var subject by remember { mutableStateOf("") }
@@ -464,7 +513,8 @@ fun AddTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, String, String)
             modifier = Modifier
                 .fillMaxWidth(0.9f)
                 .padding(16.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+            colors = CardDefaults.cardColors(contentColor = SetTextColor(), containerColor = SetTopColor())
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text("Добавление задачи", fontSize = 20.sp, fontWeight = FontWeight.Bold)
@@ -472,14 +522,16 @@ fun AddTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, String, String)
                 OutlinedTextField(
                     value = subject,
                     onValueChange = { subject = it },
-                    label = { Text("Предмет") },
-                    modifier = Modifier.fillMaxWidth()
+                    label = { Text("Предмет", color = SetTextColor()) },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = need_colors
                 )
                 OutlinedTextField(
                     value = description,
                     onValueChange = { description = it },
-                    label = { Text("Описание") },
-                    modifier = Modifier.fillMaxWidth()
+                    label = { Text("Описание", color = SetTextColor()) },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = need_colors
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -489,12 +541,13 @@ fun AddTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, String, String)
                     OutlinedTextField(
                         value = creationDate,
                         onValueChange = { creationDate = it },
-                        label = { Text("Дата создания") },
+                        label = { Text("Дата создания", color = SetTextColor()) },
                         modifier = Modifier.weight(1f),
-                        readOnly = true
+                        readOnly = true,
+                        colors = need_colors
                     )
-                    Button(onClick = { showDatePicker { creationDate = it } }) {
-                        Text("Выбрать")
+                    Button(onClick = { showDatePicker { creationDate = it } }, colors = ButtonDefaults.buttonColors(containerColor = SetButtonColor())) {
+                        Text("Выбрать", color = SetTextColor())
                     }
                 }
                 Row(
@@ -505,12 +558,13 @@ fun AddTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, String, String)
                     OutlinedTextField(
                         value = expireDate,
                         onValueChange = { expireDate = it },
-                        label = { Text("Дедлайн") },
+                        label = { Text("Дедлайн", color = SetTextColor()) },
                         modifier = Modifier.weight(1f),
-                        readOnly = true
+                        readOnly = true,
+                        colors = need_colors
                     )
-                    Button(onClick = { showDatePicker { expireDate = it } }) {
-                        Text("Выбрать")
+                    Button(onClick = { showDatePicker { expireDate = it } }, colors = ButtonDefaults.buttonColors(containerColor = SetButtonColor())) {
+                        Text("Выбрать", color = SetTextColor())
                     }
                 }
                 Spacer(modifier = Modifier.height(16.dp))
@@ -518,7 +572,7 @@ fun AddTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, String, String)
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End
                 ) {
-                    TextButton(onClick = onDismiss) { Text("Отмена") }
+                    TextButton(onClick = onDismiss) { Text("Отмена", color = SetTextColor()) }
                     Button(
                         onClick = {
                             if (subject.isNotBlank() && description.isNotBlank() && creationDate.isNotBlank() && expireDate.isNotBlank()) {
@@ -529,8 +583,9 @@ fun AddTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, String, String)
                             else {
                                 showValidationError = true
                             }
-                        }
-                    ) { Text("Создать") }
+                        },
+                         colors = ButtonDefaults.buttonColors(containerColor = SetButtonColor())
+                    ) { Text("Создать", color = SetTextColor()) }
                 }
             }
         }
@@ -540,16 +595,171 @@ fun AddTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, String, String)
     if (showValidationError) {
         AlertDialog(
             onDismissRequest = { showValidationError = false },
-            title = { Text("Ошибка заполнения") },
-            text = { Text("Пожалуйста, заполните все поля формы перед сохранением.") },
+            title = { Text("Ошибка заполнения", color = SetTextColor()) },
+            text = { Text("Пожалуйста, заполните все поля формы перед сохранением.", color = SetTextColor()) },
             confirmButton = {
                 Button(onClick = { showValidationError = false }) {
-                    Text("ОК")
+                    Text("ОК", color = SetTextColor())
                 }
             }
         )
     }
 }
+
+
+//Функция для редактирования задачи
+@Composable
+fun EditTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, String, String) -> Unit, taskitself: Task) {
+
+    //Состояния на время диалога
+    var subject by remember { mutableStateOf(taskitself.GetSubjectName()) }
+    var description by remember { mutableStateOf(taskitself.GetDescription().replace("[NEWLINE]", "\n")) }
+    var creationDate by remember {mutableStateOf(taskitself.GetCreationDate())}
+    var expireDate by remember { mutableStateOf(taskitself.GetExpireDate()) }
+    val context = LocalContext.current
+    val dateFormat = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
+
+    //Нужно для того, чтобы обработать пустые поля при попытке ввода
+    var showValidationError by remember { mutableStateOf(false) }
+
+    //Показывает календарь для выбора даты
+    fun showDatePicker(onDateSet: (String) -> Unit) {
+        val calendar = Calendar.getInstance()
+        DatePickerDialog(
+            context,
+            { _: DatePicker, year: Int, month: Int, dayOfMonth: Int ->
+                val selectedDate = Calendar.getInstance().apply { set(year, month, dayOfMonth) }
+                onDateSet(dateFormat.format(selectedDate.time))
+            },
+            calendar.get(Calendar.YEAR),
+            calendar.get(Calendar.MONTH),
+            calendar.get(Calendar.DAY_OF_MONTH)
+        ).show()
+    }
+
+    // Показывает диалоговое окно для выбора времени
+    fun showTimePicker(onTimeSet: (String) -> Unit) {
+
+        val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+
+        val calendar = Calendar.getInstance()
+        val is24HourFormat = android.text.format.DateFormat.is24HourFormat(context)
+
+        TimePickerDialog(
+            context,
+            { _: TimePicker, hourOfDay: Int, minute: Int ->
+                val selectedTime = Calendar.getInstance().apply {
+                    set(Calendar.HOUR_OF_DAY, hourOfDay)
+                    set(Calendar.MINUTE, minute)
+                }
+                onTimeSet(timeFormat.format(selectedTime.time))
+            },
+            calendar.get(Calendar.HOUR_OF_DAY),
+            calendar.get(Calendar.MINUTE),
+            is24HourFormat
+        ).show()
+    }
+
+    //Ебучка цвет рамок и текста полей ввода
+    val need_colors = OutlinedTextFieldDefaults.colors(
+        focusedBorderColor = SetTextColor(),       // Цвет рамки при фокусе
+        unfocusedBorderColor = SetBGColor(),     // Цвет рамки без фокуса
+        focusedLabelColor = SetTextColor(),        // Цвет текста подсказки при фокусе
+        unfocusedLabelColor = SetBGColor(),       // Цвет текста подсказки без фокуса
+        focusedTextColor = SetTextColor(),
+        unfocusedTextColor = SetTextColor()
+    )
+
+    //Основной диалог
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth(0.9f)
+                .padding(16.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+            colors = CardDefaults.cardColors(containerColor = SetTopColor(), contentColor = SetTextColor())
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text("Редактирование задачи", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = SetTextColor())
+                Spacer(modifier = Modifier.height(16.dp))
+                OutlinedTextField(
+                    value = subject,
+                    onValueChange = { subject = it },
+                    label = { Text("Предмет", color = SetTextColor()) },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = need_colors
+                )
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = { Text("Описание", color = SetTextColor()) },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = need_colors
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = creationDate,
+                        onValueChange = { creationDate = it },
+                        label = { Text("Дата создания", color = SetTextColor()) },
+                        modifier = Modifier.weight(1f),
+                        readOnly = true,
+                        colors = need_colors
+                    )
+                    Button(onClick = { showDatePicker { creationDate = it } },
+                        colors = ButtonDefaults.buttonColors(SetButtonColor())) {
+                        Text("Выбрать", color = SetTextColor())
+                    }
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = expireDate,
+                        onValueChange = { expireDate = it },
+                        label = { Text("Дата дедлайна", color = SetTextColor())  },
+                        modifier = Modifier.weight(1f),
+                        readOnly = true,
+                        colors = need_colors
+                    )
+                    Button(onClick = { showDatePicker{ expireDate = it } },
+                        colors = ButtonDefaults.buttonColors(SetButtonColor())) {
+                        Text("Выбрать", color = SetTextColor())
+                    }
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(onClick = onDismiss) { Text("Отмена", color = SetTextColor())  }
+                    Button(
+                        onClick = {
+                            if (subject.isNotBlank() && creationDate.isNotBlank() && expireDate.isNotBlank() && description.isNotBlank()) {
+                                onAdd(subject, description, creationDate, expireDate)
+                            }
+
+                            //Обработка пустого ввода
+                            else {
+                                showValidationError = true
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(SetButtonColor())
+                    ) { Text("Изменить", color = SetTextColor()) }
+                }
+            }
+        }
+    }
+}
+
 
 //Функция загрузки данных из файла БД
 fun loadTasks(filePath: String): List<Task> = LoadArrayFromFile(filePath)
