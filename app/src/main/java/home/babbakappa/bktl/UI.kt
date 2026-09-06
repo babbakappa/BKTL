@@ -6,7 +6,6 @@ package home.babbakappa.bktl
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
 import android.widget.DatePicker
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -26,22 +25,15 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.ui.focus.focusModifier
 import androidx.compose.material3.AlertDialog
 import android.content.Intent
-import android.widget.Button
 import android.widget.TimePicker
-import androidx.compose.animation.VectorConverter
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
-import androidx.compose.ui.composed
-import home.babbakappa.bktl.SetTextColor
-import org.apache.poi.ss.formula.functions.Column
 
 enum class DialogType { ADD, DELETE_ALL, ARCHIVE, EXPORT, EDIT }
 
@@ -475,7 +467,8 @@ fun AddTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, String, String)
         focusedLabelColor = SetTextColor(),        // Цвет текста подсказки при фокусе
         unfocusedLabelColor = SetBGColor(),       // Цвет текста подсказки без фокуса
         focusedTextColor = SetTextColor(),
-        unfocusedTextColor = SetTextColor()
+        unfocusedTextColor = SetTextColor(),
+        cursorColor = SetTextColor()
     )
 
     //Состояния на время диалога
@@ -598,10 +591,11 @@ fun AddTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, String, String)
             title = { Text("Ошибка заполнения", color = SetTextColor()) },
             text = { Text("Пожалуйста, заполните все поля формы перед сохранением.", color = SetTextColor()) },
             confirmButton = {
-                Button(onClick = { showValidationError = false }) {
+                Button(onClick = { showValidationError = false }, colors = ButtonDefaults.buttonColors(containerColor = SetButtonColor())) {
                     Text("ОК", color = SetTextColor())
                 }
-            }
+            },
+            containerColor = SetTopColor()
         )
     }
 }
@@ -667,7 +661,8 @@ fun EditTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, String, String
         focusedLabelColor = SetTextColor(),        // Цвет текста подсказки при фокусе
         unfocusedLabelColor = SetBGColor(),       // Цвет текста подсказки без фокуса
         focusedTextColor = SetTextColor(),
-        unfocusedTextColor = SetTextColor()
+        unfocusedTextColor = SetTextColor(),
+        cursorColor = SetTextColor()
     )
 
     //Основной диалог
@@ -757,6 +752,21 @@ fun EditTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, String, String
                 }
             }
         }
+    }
+
+    //Вывод месседжбокса при вводе пустых данных
+    if (showValidationError) {
+        AlertDialog(
+            onDismissRequest = { showValidationError = false },
+            title = { Text("Ошибка заполнения", color = SetTextColor()) },
+            text = { Text("Пожалуйста, заполните все поля формы перед сохранением.", color = SetTextColor()) },
+            confirmButton = {
+                Button(onClick = { showValidationError = false }, colors = ButtonDefaults.buttonColors(containerColor = SetButtonColor())) {
+                    Text("ОК", color = SetTextColor())
+                }
+            },
+            containerColor = SetTopColor()
+        )
     }
 }
 
