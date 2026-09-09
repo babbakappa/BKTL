@@ -24,7 +24,7 @@ android {
         minSdk = 26
         targetSdk = 37
         versionCode = 1
-        versionName = "1.5.2"
+        versionName = "1.6"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -89,4 +89,5 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
     implementation("org.apache.poi:poi-ooxml:5.2.3")
     implementation("org.apache.poi:poi:5.2.3")
+    implementation("androidx.compose.material:material-icons-extended")
 }

@@ -97,3 +97,32 @@ fun SetTextColor(): Color {
     }
 }
 
+@Composable
+fun SetRedColor(): Color {
+    if (isSystemInDarkTheme()) {
+        return Color(0xFFF11000)
+    }
+    else {
+        return Color(0xFFFF0000)
+    }
+}
+
+@Composable
+fun SetPurpleColor(): Color {
+    if (isSystemInDarkTheme()) {
+        return Color(0xFFF000F0)
+    }
+    else {
+        return Color(0xFFFF00FF)
+    }
+}
+
+@Composable
+fun SetYellowColor(): Color {
+    if (isSystemInDarkTheme()) {
+        return Color(0xFFF4C400)
+    }
+    else {
+        return Color(0xFFEE9900)
+    }
+}

@@ -33,9 +33,9 @@ fun getDeadLineColor(other_date: String, pattern: String = "dd.MM.yyyy"): Color 
     val rescolor: Color
 
     when {
-        daysLeft < 0 -> rescolor = Color(0xFFFF00FF) //Просрочено совсем
-        daysLeft <= 3 -> rescolor = Color.Red //Горит (0-3 дня)
-        daysLeft <= 5 -> rescolor = Color(0xFFFFA500) //Предупреждение (4-5 дней)
+        daysLeft < 0 -> rescolor = SetPurpleColor() //Просрочено совсем
+        daysLeft <= 3 -> rescolor = SetRedColor() //Горит (0-3 дня)
+        daysLeft <= 5 -> rescolor = SetYellowColor() //Предупреждение (4-5 дней)
         else -> rescolor = SetTextColor()
     }
 

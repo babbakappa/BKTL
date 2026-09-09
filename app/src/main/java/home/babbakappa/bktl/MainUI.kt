@@ -3,10 +3,6 @@
 
 package home.babbakappa.bktl
 
-import android.app.DatePickerDialog
-import android.app.TimePickerDialog
-import android.widget.DatePicker
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -14,23 +10,19 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import java.io.File
-import java.text.SimpleDateFormat
-import java.util.*
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material3.AlertDialog
 import android.content.Intent
-import android.widget.TimePicker
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.MoreVert
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
@@ -132,11 +124,67 @@ fun TaskListApp() {
         saveArchive()
     }
 
+    //Для трех точек сверху
+    @Composable
+    fun ThreeDotsMenu() {
+        var expanded by remember { mutableStateOf(false) }
+
+        Column {
+            IconButton(
+                onClick = { expanded = !expanded }
+            ) {
+                Icon(
+                    imageVector = Icons.Default.MoreVert,
+                    contentDescription = "Меню"
+                )
+            }
+
+            // Выпадающий список
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+                containerColor = SetBGColor()
+            ) {
+                DropdownMenuItem(
+                    text = { Text("Удалить все", color = SetTextColor()) },
+                    onClick = {
+                        expanded = false
+                        state = state.copy(dialog = DialogType.DELETE_ALL)
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text("Архив задач", color = SetTextColor()) },
+                    onClick = {
+                        expanded = false
+                        state = state.copy(dialog = DialogType.ARCHIVE)
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text("Экспортировать", color = SetTextColor()) },
+                    onClick = {
+                        expanded = false
+                        state = state.copy(dialog = DialogType.EXPORT)
+                    }
+                )
+            }
+        }
+
+
+    }
+
+
+
     //Основной экран приложения, содержит все, что есть
     Scaffold(
         //Шапка приложения
-        topBar = { TopAppBar(
-            title = { Text("Список задач универа", fontSize = 24.sp, fontWeight = FontWeight.Bold) },
+        topBar =
+            { TopAppBar(
+            title = {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("Список задач универа", fontSize = 24.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(8.dp))
+                    ThreeDotsMenu()
+                }
+                    },
             colors = TopAppBarDefaults.topAppBarColors(
                 containerColor = SetTopColor(),
                 titleContentColor = SetTextColor()
@@ -144,7 +192,7 @@ fun TaskListApp() {
         ) },
 
         //Нижняя панель, которая содержит все кнопки действий
-        bottomBar = { Surface(modifier = Modifier.fillMaxWidth().height((128 + 24 + 64).dp), tonalElevation = 6.dp, color = SetBottomColor()) {
+        bottomBar = { Surface(modifier = Modifier.fillMaxWidth().height((64).dp), tonalElevation = 6.dp, color = SetBottomColor()) {
 
             //Колонна со всеми кнопками
             Column(
@@ -159,76 +207,22 @@ fun TaskListApp() {
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
-
+                    val fb = 240
                     //Кнопка добавления задачи
-                    Button(onClick = { state = state.copy(dialog = DialogType.ADD) }, colors = ButtonDefaults.buttonColors(contentColor = SetTextColor(), containerColor = SetButtonColor())) {
-                        Text("Добавить")
-                    }
-
-                    //Кнопка добавления задачи
-                    Button(onClick = { state = state.copy(dialog = DialogType.EDIT) }, colors = ButtonDefaults.buttonColors(contentColor = SetTextColor(), containerColor = SetButtonColor()), enabled = state.selectedIndex != null) {
-                        Text("Редактировать")
-                    }
-
-
-                }
-
-                //Ряд с кнопками
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-
-                    //Кнопка удаления выбранной задачи (перенос задачи в архив)
-                    Button(
-                        colors = ButtonDefaults.buttonColors(containerColor = SetButtonColor(), contentColor = SetTextColor()),
-                        onClick = {
-                            state.selectedIndex?.let { idx ->
-                                if (idx < state.tasks.size) {
-                                    moveToArchive(state.tasks[idx])
-                                }
-                            }
-                        },
-                        enabled = state.selectedIndex != null
+                    IconButton(
+                        onClick = {state = state.copy(dialog = DialogType.ADD)},
+                        colors = IconButtonColors(contentColor = SetTextColor(), containerColor = SetTopColor(),
+                            disabledContentColor = SetTextColor(), disabledContainerColor = SetTopColor())
                     ) {
-                        Text("Удалить выбранное")
-                    }
-
-                    //Кнопка удаления всех задач
-                    Button(
-                        onClick = { state = state.copy(dialog = DialogType.DELETE_ALL) },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.error,
-                            contentColor = Color.White
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = "Удалить",
+                            modifier = Modifier.width(fb.dp).height(fb.dp)
                         )
-                    ) {
-                        Text("Удалить все")
                     }
 
                 }
 
-                //Нижний ряд с кнопкой "Экспорт в Excel"
-                Row (modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalAlignment = Alignment.CenterVertically) {
-
-                    //Кнопка открытия архива задач
-                    Button(
-                        onClick = { state = state.copy(dialog = DialogType.ARCHIVE) },
-                        colors = ButtonDefaults.buttonColors(contentColor = SetTextColor(), containerColor = SetButtonColor())
-                    ) {
-                        Text("Архив")
-                    }
-
-                    Button(onClick = {state = state.copy(dialog = DialogType.EXPORT)},
-                        colors = ButtonDefaults.buttonColors(contentColor = Color.White, containerColor = Color(0xFF008000))) {
-                        Text("Экспорт в Excel", textAlign = TextAlign.Center)
-                    }
-                }
-
-                //Костыль для внешнего вида, вот такой вот капризный Android
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {}
             }
         }
         },
@@ -267,6 +261,13 @@ fun TaskListApp() {
                                 state = state.copy(
                                     selectedIndex = if (state.selectedIndex == index) null else index
                                 )
+                            },
+                            doTheButtons = state.selectedIndex == index,
+                            onEditClick = {
+                                state = state.copy(selectedIndex = index, dialog = DialogType.EDIT)
+                            },
+                            onDeleteClick = {
+                                moveToArchive(task)
                             }
                         )
                     }
