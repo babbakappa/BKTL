@@ -1,5 +1,5 @@
 //Файл MainActivity.kt
-//По сути самый обычный main, который запускает функцию из UI.kt
+//По сути самый обычный main, который запускает функцию из MainUI.kt
 
 package home.babbakappa.bktl
 import android.content.pm.PackageManager
