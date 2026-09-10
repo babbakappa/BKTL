@@ -192,7 +192,7 @@ fun TaskListApp() {
         ) },
 
         //Нижняя панель, которая содержит все кнопки действий
-        bottomBar = { Surface(modifier = Modifier.fillMaxWidth().height((64).dp), tonalElevation = 6.dp, color = SetBottomColor()) {
+        bottomBar = { Surface(modifier = Modifier.fillMaxWidth().height((128).dp), tonalElevation = 6.dp, color = SetBottomColor()) {
 
             //Колонна со всеми кнопками
             Column(
