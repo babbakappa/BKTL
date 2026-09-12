@@ -4,6 +4,9 @@
 
 package home.babbakappa.bktl
 
+import androidx.compose.runtime.Immutable
+
+@Immutable
 class Task {
 
     //Главные поля

@@ -34,8 +34,8 @@ fun getDeadLineColor(other_date: String, pattern: String = "dd.MM.yyyy"): Color 
 
     when {
         daysLeft < 0 -> rescolor = SetPurpleColor() //Просрочено совсем
-        daysLeft <= 3 -> rescolor = SetRedColor() //Горит (0-3 дня)
-        daysLeft <= 5 -> rescolor = SetYellowColor() //Предупреждение (4-5 дней)
+        daysLeft <= 2 -> rescolor = SetRedColor() //Горит (0-2 дня)
+        daysLeft <= 4 -> rescolor = SetYellowColor() //Предупреждение (3-4 дней)
         else -> rescolor = SetTextColor()
     }
 

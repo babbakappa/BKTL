@@ -49,7 +49,7 @@ fun TaskListApp() {
         val tasks: List<Task> = emptyList(),
         val archive: List<Task> = emptyList(),
         val selectedIndex: Int? = null,
-        val dialog: DialogType? = null
+        //val dialog: DialogType? = null
     )
 
     //Переменная состояния, то есть для tasks загружаются данные из
@@ -62,6 +62,9 @@ fun TaskListApp() {
             )
         )
     }
+
+    //Отдельно для состояния диалога
+    var dialog by remember { mutableStateOf<DialogType?>(null) }
 
     //При первом запуске заполняем главные объекты классов TaskList и
     //Archive загруженными данными
@@ -149,21 +152,21 @@ fun TaskListApp() {
                     text = { Text("Удалить все", color = SetTextColor()) },
                     onClick = {
                         expanded = false
-                        state = state.copy(dialog = DialogType.DELETE_ALL)
+                        dialog = DialogType.DELETE_ALL
                     }
                 )
                 DropdownMenuItem(
                     text = { Text("Архив задач", color = SetTextColor()) },
                     onClick = {
                         expanded = false
-                        state = state.copy(dialog = DialogType.ARCHIVE)
+                        dialog = DialogType.ARCHIVE
                     }
                 )
                 DropdownMenuItem(
                     text = { Text("Экспортировать", color = SetTextColor()) },
                     onClick = {
                         expanded = false
-                        state = state.copy(dialog = DialogType.EXPORT)
+                        dialog = DialogType.EXPORT
                     }
                 )
             }
@@ -172,6 +175,132 @@ fun TaskListApp() {
 
     }
 
+    @Composable
+    fun chosenToAdd() {
+        AddTaskDialog(
+            onDismiss = { dialog = null},
+            onAdd = { subject, desc, cd, ed ->
+                //Создается объект и добавляется в массив
+                val newTask = taskList.CreateAndAddNewTaskWithReturn(subject, desc, cd, ed)
+                syncState()
+                saveTasks()
+                NotificationHelper.scheduleNotification(newTask, context)
+
+                dialog = null
+            }
+        )
+    }
+
+    @Composable
+    fun chosenToDeleteAll() {
+        AlertDialog(
+            onDismissRequest = { dialog = null },
+            title = { Text("Удалить все задачи?", color = SetTextColor()) },
+            text = { Text("Задачи будут перемещены в архив.", color = SetTextColor()) },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        moveAllToArchive()
+                        dialog = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = SetButtonColor())
+                ) { Text("Удалить всё",  color = SetTextColor()) }
+            },
+            dismissButton = {
+                TextButton(onClick = { dialog = null }) {
+                    Text("Отмена",  color = SetTextColor())
+                }
+            },
+            containerColor = SetTopColor()
+        )
+    }
+
+
+    @Composable
+    fun chosenToEdit() {
+        val index = state.selectedIndex!!
+        val oldTask = taskList.GetTaskFromArrayByIndex(index)
+        EditTaskDialog(
+            onAdd = { subject, gr, desc, cd ->
+                NotificationHelper.cancelNotification(oldTask, context)
+                //Создается объект и добавляется в массив
+                taskList.EditTaskByIndex(state.selectedIndex!!, subject, gr, desc, cd)
+                syncState()
+                saveTasks()
+                val newTask = taskList.GetTaskFromArrayByIndex(index)
+                NotificationHelper.scheduleNotification(newTask, context)
+                dialog = null
+            },
+            onDismiss = { dialog = null },
+            taskitself = taskList.GetTaskFromArrayByIndex(state.selectedIndex!!)
+        )
+    }
+
+    @Composable
+    fun chosenToExport() {
+        val scope = rememberCoroutineScope()
+        AlertDialog(
+            onDismissRequest = { dialog = null},
+            title = { Text("Экспорт отчёта",  color = SetTextColor()) },
+            text = { Text("Создать файл с текущими задачами?", color = SetTextColor()) },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        scope.launch {
+                            val uri = exportTasksToExcel(context, state.tasks)
+                            if (uri != null) {
+                                // Открываем файл
+                                val intent = Intent(Intent.ACTION_VIEW).apply {
+                                    setData(uri)
+                                    flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
+                                }
+                                context.startActivity(Intent.createChooser(intent, "Открыть отчёт"))
+                            } else {
+                                // Показать ошибку (Toast)
+                            }
+                            dialog = null
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(SetButtonColor(), SetTextColor())
+                ) { Text("Экспортировать") }
+            },
+            dismissButton = {
+                TextButton(onClick = { dialog = null }) {
+                    Text("Отмена", color = SetTextColor())
+                }
+            }
+            ,containerColor = SetTopColor()
+        )
+    }
+
+    @Composable
+    fun chosenArchive() {
+        ArchiveDialog(
+            archive = state.archive, //отображаем актуальный архив
+            onRestore = { task ->
+                // Восстанавливаем из архива
+                archive.RemoveFromArchive(task) //прямое удаление
+                taskList.AddTask(task) //добавление в основной лист обратно
+                syncState()
+                saveTasks()
+                saveArchive()
+            },
+            onDeleteForever = { task ->
+                //Удаляем навсегда из архива
+                archive.ArchiveArray.remove(task)
+                syncState()
+                saveArchive()
+            },
+            onClearAll = {
+                //Удаляем весь архив навсегда
+                archive.DeleteEverything()
+                syncState()
+                saveArchive()
+            },
+            //Отмена
+            onDismiss = { dialog = null }
+        )
+    }
 
 
     //Основной экран приложения, содержит все, что есть
@@ -210,7 +339,7 @@ fun TaskListApp() {
                     val fb = 240
                     //Кнопка добавления задачи
                     IconButton(
-                        onClick = {state = state.copy(dialog = DialogType.ADD)},
+                        onClick = {dialog = DialogType.ADD},
                         colors = IconButtonColors(contentColor = SetTextColor(), containerColor = SetTopColor(),
                             disabledContentColor = SetTextColor(), disabledContainerColor = SetTopColor())
                     ) {
@@ -264,7 +393,8 @@ fun TaskListApp() {
                             },
                             doTheButtons = state.selectedIndex == index,
                             onEditClick = {
-                                state = state.copy(selectedIndex = index, dialog = DialogType.EDIT)
+                                state = state.copy(selectedIndex = index)
+                                dialog = DialogType.EDIT
                             },
                             onDeleteClick = {
                                 moveToArchive(task)
@@ -277,138 +407,38 @@ fun TaskListApp() {
     }
 
     //Обработка диалогов
-    when (state.dialog) {
+    when (dialog) {
 
         //Если выбрано добавить задачу
         DialogType.ADD -> {
-            AddTaskDialog(
-                onDismiss = { state = state.copy(dialog = null) },
-                onAdd = { subject, desc, cd, ed ->
-                    //Создается объект и добавляется в массив
-                    val newTask = taskList.CreateAndAddNewTaskWithReturn(subject, desc, cd, ed)
-                    syncState()
-                    saveTasks()
-                    NotificationHelper.scheduleNotification(newTask, context)
-
-                    state = state.copy(dialog = null)
-                }
-            )
+            chosenToAdd()
         }
 
         //Если выбрарно удалить все задачи
         DialogType.DELETE_ALL -> {
-            AlertDialog(
-                onDismissRequest = { state = state.copy(dialog = null) },
-                title = { Text("Удалить все задачи?", color = SetTextColor()) },
-                text = { Text("Задачи будут перемещены в архив.", color = SetTextColor()) },
-                confirmButton = {
-                    Button(
-                        onClick = {
-                            moveAllToArchive()
-                            state = state.copy(dialog = null)
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = SetButtonColor())
-                    ) { Text("Удалить всё",  color = SetTextColor()) }
-                },
-                dismissButton = {
-                    TextButton(onClick = { state = state.copy(dialog = null) }) {
-                        Text("Отмена",  color = SetTextColor())
-                    }
-                },
-                containerColor = SetTopColor()
-            )
+            chosenToDeleteAll()
         }
 
         //Если нажал кнопку "Архив"
         DialogType.ARCHIVE -> {
-            ArchiveDialog(
-                archive = state.archive, //отображаем актуальный архив
-                onRestore = { task ->
-                    // Восстанавливаем из архива
-                    archive.RemoveFromArchive(task) //прямое удаление
-                    taskList.AddTask(task) //добавление в основной лист обратно
-                    syncState()
-                    saveTasks()
-                    saveArchive()
-                },
-                onDeleteForever = { task ->
-                    //Удаляем навсегда из архива
-                    archive.ArchiveArray.remove(task)
-                    syncState()
-                    saveArchive()
-                },
-                onClearAll = {
-                    //Удаляем весь архив навсегда
-                    archive.DeleteEverything()
-                    syncState()
-                    saveArchive()
-                },
-                //Отмена
-                onDismiss = { state = state.copy(dialog = null) }
-            )
+            chosenArchive()
         }
 
         //Если выбран экспорт в эксель
         //Лучше не лезть сюда, работает и ладно
         DialogType.EXPORT -> {
-            val scope = rememberCoroutineScope()
-            AlertDialog(
-                onDismissRequest = { state = state.copy(dialog = null) },
-                title = { Text("Экспорт отчёта",  color = SetTextColor()) },
-                text = { Text("Создать файл с текущими задачами?", color = SetTextColor()) },
-                confirmButton = {
-                    Button(
-                        onClick = {
-                            scope.launch {
-                                val uri = exportTasksToExcel(context, state.tasks)
-                                if (uri != null) {
-                                    // Открываем файл
-                                    val intent = Intent(Intent.ACTION_VIEW).apply {
-                                        setData(uri)
-                                        flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
-                                    }
-                                    context.startActivity(Intent.createChooser(intent, "Открыть отчёт"))
-                                } else {
-                                    // Показать ошибку (Toast)
-                                }
-                                state = state.copy(dialog = null)
-                            }
-                        },
-                        colors = ButtonDefaults.buttonColors(SetButtonColor(), SetTextColor())
-                    ) { Text("Экспортировать") }
-                },
-                dismissButton = {
-                    TextButton(onClick = { state = state.copy(dialog = null) }) {
-                        Text("Отмена", color = SetTextColor())
-                    }
-                }
-                ,containerColor = SetTopColor()
-            )
+            chosenToExport()
         }
 
         //Если выбрано редактирование задачи
         DialogType.EDIT -> {
-            val index = state.selectedIndex!!
-            val oldTask = taskList.GetTaskFromArrayByIndex(index)
-            EditTaskDialog(
-                onAdd = { subject, gr, desc, cd ->
-                    NotificationHelper.cancelNotification(oldTask, context)
-                    //Создается объект и добавляется в массив
-                    taskList.EditTaskByIndex(state.selectedIndex!!, subject, gr, desc, cd)
-                    syncState()
-                    saveTasks()
-                    val newTask = taskList.GetTaskFromArrayByIndex(index)
-                    NotificationHelper.scheduleNotification(newTask, context)
-                    state = state.copy(dialog = null)
-                },
-                onDismiss = { state = state.copy(dialog = null) },
-                taskitself = taskList.GetTaskFromArrayByIndex(state.selectedIndex!!)
-            )
+            chosenToEdit()
         }
 
         //Обработка Null
         null -> {}
     }
+
 }
 
 //Функция загрузки данных из файла БД

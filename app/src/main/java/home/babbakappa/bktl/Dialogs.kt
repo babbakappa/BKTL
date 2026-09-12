@@ -4,6 +4,7 @@ import android.app.DatePickerDialog
 import android.app.TimePickerDialog
 import android.widget.DatePicker
 import android.widget.TimePicker
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -11,11 +12,20 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.ArrowDropUp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonColors
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
@@ -37,7 +47,14 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 
+
+val subjects = mutableListOf<String>("Иностранный язык", "Алгоритмизация и программирование", "Вычислительная математика",
+    "Дискретная математика", "Математический анализ", "Профессионально-прикладная физическая культура",
+    "Теория информационных процессов и систем", "Технология программирования", "Физика")
+
+
 //Диалог добавления задачи
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, String, String) -> Unit) {
 
@@ -78,6 +95,8 @@ fun AddTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, String, String)
         ).show()
     }
 
+    var expanded by remember { mutableStateOf(false) }
+
     //Основной диалог
     Dialog(
         onDismissRequest = onDismiss,
@@ -92,14 +111,54 @@ fun AddTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, String, String)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text("Добавление задачи", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+
                 Spacer(modifier = Modifier.height(16.dp))
-                OutlinedTextField(
-                    value = subject,
-                    onValueChange = { subject = it },
-                    label = { Text("Предмет", color = SetTextColor()) },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = need_colors
-                )
+
+
+                Row(modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp), // Отступ между полем и кнопкой
+                    verticalAlignment = Alignment.CenterVertically) {
+                    OutlinedTextField(
+                        value = subject,
+                        onValueChange = { subject = it },
+                        label = { Text("Предмет", color = SetTextColor()) },
+                        modifier = Modifier.weight(1f),
+                        colors = need_colors,
+                    )
+
+                    androidx.compose.foundation.layout.Box {
+                        IconButton(
+                            onClick = { expanded = true },
+                            colors = IconButtonColors(containerColor = SetButtonColor(), contentColor = SetTextColor(),
+                                disabledContainerColor = SetButtonColor(), disabledContentColor = SetTextColor())
+                        ) {
+                            if (expanded) {
+                                Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = null)
+                            }
+                            else {
+                                Icon(imageVector = Icons.Default.ArrowDropUp, contentDescription = null)
+                            }
+                        }
+
+                        DropdownMenu(
+                            expanded = expanded,
+                            onDismissRequest = { expanded = false },
+                            modifier = Modifier.background(SetTopColor())
+                        ) {
+                            subjects.forEach { option ->
+                                DropdownMenuItem(
+                                    text = { Text(option, color = SetTextColor()) },
+                                    onClick = {
+                                        subject = option
+                                        expanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+
+
                 OutlinedTextField(
                     value = description,
                     onValueChange = { description = it },
@@ -184,6 +243,7 @@ fun AddTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, String, String)
 
 //Функция для редактирования задачи
 @Composable
+@OptIn(ExperimentalMaterial3Api::class)
 fun EditTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, String, String) -> Unit, taskitself: Task) {
 
     //Состояния на время диалога
@@ -196,6 +256,9 @@ fun EditTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, String, String
 
     //Нужно для того, чтобы обработать пустые поля при попытке ввода
     var showValidationError by remember { mutableStateOf(false) }
+
+    var expanded by remember { mutableStateOf(false) }
+
 
     //Показывает календарь для выбора даты
     fun showDatePicker(onDateSet: (String) -> Unit) {
@@ -260,14 +323,52 @@ fun EditTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, String, String
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text("Редактирование задачи", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = SetTextColor())
+
+
+
                 Spacer(modifier = Modifier.height(16.dp))
-                OutlinedTextField(
-                    value = subject,
-                    onValueChange = { subject = it },
-                    label = { Text("Предмет", color = SetTextColor()) },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = need_colors
-                )
+                Row(modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp), // Отступ между полем и кнопкой
+                    verticalAlignment = Alignment.CenterVertically) {
+                    OutlinedTextField(
+                        value = subject,
+                        onValueChange = { subject = it },
+                        label = { Text("Предмет", color = SetTextColor()) },
+                        modifier = Modifier.weight(1f),
+                        colors = need_colors,
+                    )
+
+                    androidx.compose.foundation.layout.Box {
+                        IconButton(
+                            onClick = { expanded = true },
+                            colors = IconButtonColors(containerColor = SetButtonColor(), contentColor = SetTextColor(),
+                                disabledContainerColor = SetButtonColor(), disabledContentColor = SetTextColor())
+                        ) {
+                            if (expanded) {
+                                Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = null)
+                            }
+                            else {
+                                Icon(imageVector = Icons.Default.ArrowDropUp, contentDescription = null)
+                            }
+                        }
+
+                        DropdownMenu(
+                            expanded = expanded,
+                            onDismissRequest = { expanded = false },
+                            modifier = Modifier.background(SetTopColor())
+                        ) {
+                            subjects.forEach { option ->
+                                DropdownMenuItem(
+                                    text = { Text(option, color = SetTextColor()) },
+                                    onClick = {
+                                        subject = option
+                                        expanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
                 OutlinedTextField(
                     value = description,
                     onValueChange = { description = it },

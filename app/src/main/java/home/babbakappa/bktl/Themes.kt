@@ -100,7 +100,7 @@ fun SetTextColor(): Color {
 @Composable
 fun SetRedColor(): Color {
     if (isSystemInDarkTheme()) {
-        return Color(0xFFF11000)
+        return Color(0xFFFF2222)
     }
     else {
         return Color(0xFFFF0000)
@@ -110,7 +110,7 @@ fun SetRedColor(): Color {
 @Composable
 fun SetPurpleColor(): Color {
     if (isSystemInDarkTheme()) {
-        return Color(0xFFF000F0)
+        return Color(0xFFFF22FF)
     }
     else {
         return Color(0xFFFF00FF)
@@ -120,7 +120,7 @@ fun SetPurpleColor(): Color {
 @Composable
 fun SetYellowColor(): Color {
     if (isSystemInDarkTheme()) {
-        return Color(0xFFF4C400)
+        return Color(0xFFFFFF00)
     }
     else {
         return Color(0xFFEE9900)
