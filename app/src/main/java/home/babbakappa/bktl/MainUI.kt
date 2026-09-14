@@ -49,7 +49,8 @@ fun TaskListApp() {
     var dialog by remember { mutableStateOf<DialogType?>(null) }
 
     fun moveToArchive(task: Task) {
-        taskList.DeleteTask(task)          // = archive(id)
+        taskList.DeleteTask(task) // = archive(id)
+        selectedIndex = null
     }
 
     fun moveAllToArchive() {
