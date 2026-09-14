@@ -9,6 +9,8 @@ import android.os.Bundle
 import androidx.compose.material3.*
 import android.os.Build
 import android.util.Log
+import kotlinx.coroutines.launch
+import java.io.File
 
 class MainActivity : ComponentActivity() {
 
@@ -34,6 +36,8 @@ class MainActivity : ComponentActivity() {
             Log.d("Notification", "Запрошено разрешение SCHEDULE_EXACT_ALARM")
         }
 
+        migrateLegacyDataIfNeeded()
+
         setContent {
             MaterialTheme {
                 TaskListApp()
@@ -49,4 +53,53 @@ class MainActivity : ComponentActivity() {
             Log.d("Notification", "Разрешение ${permissions[i]} -> ${if (granted) "ДА" else "НЕТ"}")
         }
     }
+
+    private fun migrateLegacyDataIfNeeded() {
+        // Скоуп не блокирует UI
+        AppScope.launch {
+            val dao = AppDatabase.get(applicationContext).taskDao()
+
+            // Уже что-то есть в Room — выходим, миграция не нужна
+            if (dao.hasAnyTask()) return@launch
+
+            // Пути к старым файлам — как в MainUI
+            val dataFile    = File(filesDir, DBFilePath).absolutePath
+            val archiveFile = File(filesDir, ArchiveFilePath).absolutePath
+
+            val activeTasks   = LoadArrayFromFile(dataFile)
+            val archivedTasks = LoadArrayFromFile(archiveFile)
+
+            // Ничего мигрировать не надо
+            if (activeTasks.isEmpty() && archivedTasks.isEmpty()) return@launch
+
+            activeTasks.forEach { t ->
+                dao.insert(
+                    TaskEntity(
+                        subjectName  = t.GetSubjectName(),
+                        description  = t.GetDescription(),
+                        creationDate = t.GetCreationDate(),
+                        expireDate   = t.GetExpireDate(),
+                        isArchived   = false
+                    )
+                )
+            }
+            archivedTasks.forEach { t ->
+                dao.insert(
+                    TaskEntity(
+                        subjectName  = t.GetSubjectName(),
+                        description  = t.GetDescription(),
+                        creationDate = t.GetCreationDate(),
+                        expireDate   = t.GetExpireDate(),
+                        isArchived   = true
+                    )
+                )
+            }
+
+            // (опционально) чтобы миграция больше не запускалась —
+            // переименуем старые файлы, чтобы понять, что перенос сделан.
+            File(filesDir, DBFilePath).let { if (it.exists()) it.renameTo(File(filesDir, "$DBFilePath.migrated")) }
+            File(filesDir, ArchiveFilePath).let { if (it.exists()) it.renameTo(File(filesDir, "$ArchiveFilePath.migrated")) }
+        }
+    }
+
 }

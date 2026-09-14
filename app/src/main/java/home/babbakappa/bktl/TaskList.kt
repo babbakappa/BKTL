@@ -4,64 +4,63 @@
 
 package home.babbakappa.bktl
 
-class TaskList {
-    //Самый главный массив
-    var MainArray = mutableListOf<Task>()
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 
-    //Функция создать задачу и добавить в массив
+
+class TaskList(private val dao: TaskDao) {
+
+    val tasksFlow: Flow<List<Task>> =
+        dao.observeActive().map { list -> list.map { it.toTask() } }
+
     fun CreateAndAddNewTask(subjname: String, desc: String, cd: String, ed: String) {
-        var temp = Task()
-        temp.CreateTask(subjname, desc, cd, ed)
-        MainArray.add(temp)
-    }
-
-    //Добавить задачу в массив
-    fun AddTask(t: Task) {
-        MainArray.add(t)
-    }
-
-    //Удаление задачи по индексу
-    //Хз зачем оно нужно теперь, но пусть останется
-    fun DeleteTaskByIndex(idx: Int) {
-        MainArray.removeAt(idx)
-    }
-
-    //Функция удалить все
-    fun DeleteEverything() {
-        MainArray.clear()
-    }
-
-    //Функция получить весь массив
-    fun GetEntireTaskList(): List<Task> {
-        return MainArray
-    }
-
-    //Функция получить задачу по индексу. Тоже хз зачем нужно
-    fun GetTaskFromArrayByIndex(idx: Int): Task {
-        return MainArray[idx]
-    }
-
-    //Функция задать массив
-    fun SetArray(t: List<Task>) {
-        MainArray = t.toMutableList()
-    }
-
-    //Функция удалить задачу по объекту
-    fun DeleteTask(task: Task) {
-        MainArray.remove(task)
+        AppScope.launch {
+            dao.insert(TaskEntity(
+                subjectName = subjname,
+                description = desc,
+                creationDate = cd,
+                expireDate = ed
+            ))
+        }
     }
 
     fun CreateAndAddNewTaskWithReturn(subjname: String, gr: String, descr: String, cd: String): Task {
         val temp = Task()
         temp.CreateTask(subjname, gr, descr, cd)
-        MainArray.add(temp)
+        AppScope.launch {
+            val newId = dao.insert(temp.toEntity())
+            temp.SetId(newId)
+        }
         return temp
     }
 
-    //Отредактировать задачу по индексу
-    fun EditTaskByIndex(idx: Int, subject: String, gr: String, desc: String, cd: String) {
-        val g = Task()
-        g.CreateTask(subject, gr, desc, cd)
-        MainArray[idx] = g
+    fun AddTask(t: Task) {
+        AppScope.launch {
+            if (t.GetId() != 0L) dao.unarchive(t.GetId())
+            else dao.insert(t.toEntity())
+        }
+    }
+
+    fun DeleteTask(task: Task) {
+        AppScope.launch { dao.archive(task.GetId()) }
+    }
+
+    fun DeleteEverything() {
+        AppScope.launch { dao.archiveAll() }
+    }
+
+    // Заменяем EditTaskByIndex на EditTask (передаём сам объект — так надёжнее с Flow)
+    fun EditTask(task: Task, subject: String, desc: String, cd: String, ed: String) {
+        AppScope.launch {
+            dao.update(TaskEntity(
+                id = task.GetId(),
+                subjectName = subject,
+                description = desc,
+                creationDate = cd,
+                expireDate = ed,
+                isArchived = false
+            ))
+        }
     }
 }

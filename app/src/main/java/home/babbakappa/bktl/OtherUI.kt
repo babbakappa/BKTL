@@ -22,13 +22,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-data class UIState(
-    val tasks: List<Task> = emptyList(),
-    val archive: List<Task> = emptyList(),
-    val selectedIndex: Int? = null,
-    //val dialog: DialogType? = null
-)
-
 //Сам объект задача (прямоугольник) в интерфейсе
 @Composable
 fun TaskItem(task: Task,

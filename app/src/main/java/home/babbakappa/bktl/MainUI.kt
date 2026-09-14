@@ -35,96 +35,25 @@ enum class DialogType { ADD, DELETE_ALL, ARCHIVE, EXPORT, EDIT }
 fun TaskListApp() {
     //Текущий контекст приложения
     val context = LocalContext.current
-    //Данные из основной БД
-    val dataFile = File(context.filesDir, DBFilePath).absolutePath
-    val archiveFile = File(context.filesDir, ArchiveFilePath).absolutePath
 
-    //Главные объекты, которые содержат все задачи
-    val taskList = remember { TaskList() }
-    val archive = remember { Archive() }
+    val dao = remember { AppDatabase.get(context).taskDao() }
+    val taskList = remember { TaskList(dao) }
+    val archive  = remember { Archive(dao) }
 
-    //Состояние UI (теперь хранит только список задач и архив для отображения,
-    //но они синхронизируются с taskList и archive)
-    data class UIState(
-        val tasks: List<Task> = emptyList(),
-        val archive: List<Task> = emptyList(),
-        val selectedIndex: Int? = null,
-        //val dialog: DialogType? = null
-    )
+// Подписки на Flow из Room — вместо state.tasks/state.archive
+    val tasks        by taskList.tasksFlow.collectAsState(initial = emptyList())
+    val archiveTasks by archive.archiveFlow.collectAsState(initial = emptyList())
 
-    //Переменная состояния, то есть для tasks загружаются данные из
-    //основной БД, для archive - из архивной БД
-    var state by remember {
-        mutableStateOf(
-            UIState(
-                tasks = loadTasks(dataFile),
-                archive = loadTasks(archiveFile)
-            )
-        )
-    }
-
-    //Отдельно для состояния диалога
+// selectedIndex оставляем как отдельный стейт — это единственное, что было нужно из UIState
+    var selectedIndex by remember { mutableStateOf<Int?>(null) }
     var dialog by remember { mutableStateOf<DialogType?>(null) }
 
-    //При первом запуске заполняем главные объекты классов TaskList и
-    //Archive загруженными данными
-    LaunchedEffect(Unit) {
-        //Загружаем данные из файлов в главные объекты
-        val loadedTasks = loadTasks(dataFile)
-        val loadedArchive = loadTasks(archiveFile)
-        taskList.SetArray(loadedTasks)
-        archive.SetArchive(loadedArchive)
-        //Задаем переменной state новые данные
-        state = state.copy(tasks = loadedTasks, archive = loadedArchive)
-    }
-
-    //Функция синхронизации переменной state с главными объектами.
-    //Нужно вызывать при каждом изменении данных
-    fun syncState() {
-        state = state.copy(
-            tasks = taskList.GetEntireTaskList().toList(),
-            archive = archive.GetEntireArchive().toList(),
-            selectedIndex = null // обычно сбрасываем выделение
-        )
-    }
-
-    //Функция сохранения данных в основную БД
-    fun saveTasks() {
-        SaveArrayToFile(taskList.GetEntireTaskList(), dataFile)
-    }
-
-    //Функция сохранения данных в архивную БД
-    fun saveArchive() {
-        SaveArrayToFile(archive.GetEntireArchive(), archiveFile)
-    }
-
-    //Перемещение задачи в архив
     fun moveToArchive(task: Task) {
-        //Удаляем из основного списка (по объекту)
-        taskList.DeleteTask(task)
-        //Добавляем в архив
-        archive.AddTaskToArchive(task)
-        //Синхронизируем интерфейс
-        syncState()
-        //Сохраняем
-        saveTasks()
-        saveArchive()
+        taskList.DeleteTask(task)          // = archive(id)
     }
 
-    //Удаление всех задач (все добавляется в архив)
     fun moveAllToArchive() {
-        //Берём все задачи из taskList
-        val allTasks = taskList.GetEntireTaskList()
-        //Добавляем их в архив
-        for (t in allTasks) {
-            archive.AddTaskToArchive(t)
-        }
-        //Очищаем основной список
-        taskList.DeleteEverything()
-        //Синхронизируем
-        syncState()
-        saveTasks()
-        saveArchive()
+        taskList.DeleteEverything()        // = archiveAll()
     }
 
     //Для трех точек сверху
@@ -182,8 +111,6 @@ fun TaskListApp() {
             onAdd = { subject, desc, cd, ed ->
                 //Создается объект и добавляется в массив
                 val newTask = taskList.CreateAndAddNewTaskWithReturn(subject, desc, cd, ed)
-                syncState()
-                saveTasks()
                 NotificationHelper.scheduleNotification(newTask, context)
 
                 dialog = null
@@ -218,21 +145,17 @@ fun TaskListApp() {
 
     @Composable
     fun chosenToEdit() {
-        val index = state.selectedIndex!!
-        val oldTask = taskList.GetTaskFromArrayByIndex(index)
+        val idx = selectedIndex ?: return
+        val task = tasks.getOrNull(idx) ?: return
         EditTaskDialog(
-            onAdd = { subject, gr, desc, cd ->
-                NotificationHelper.cancelNotification(oldTask, context)
-                //Создается объект и добавляется в массив
-                taskList.EditTaskByIndex(state.selectedIndex!!, subject, gr, desc, cd)
-                syncState()
-                saveTasks()
-                val newTask = taskList.GetTaskFromArrayByIndex(index)
-                NotificationHelper.scheduleNotification(newTask, context)
+            onAdd = { subject, desc, cd, ed ->       // порядок: subject, description, creationDate, expireDate
+                NotificationHelper.cancelNotification(task, context)
+                taskList.EditTask(task, subject, desc, cd, ed)
+                NotificationHelper.scheduleNotification(task, context)
                 dialog = null
             },
             onDismiss = { dialog = null },
-            taskitself = taskList.GetTaskFromArrayByIndex(state.selectedIndex!!)
+            taskitself = task
         )
     }
 
@@ -247,7 +170,7 @@ fun TaskListApp() {
                 Button(
                     onClick = {
                         scope.launch {
-                            val uri = exportTasksToExcel(context, state.tasks)
+                            val uri = exportTasksToExcel(context, tasks)
                             if (uri != null) {
                                 // Открываем файл
                                 val intent = Intent(Intent.ACTION_VIEW).apply {
@@ -276,32 +199,13 @@ fun TaskListApp() {
     @Composable
     fun chosenArchive() {
         ArchiveDialog(
-            archive = state.archive, //отображаем актуальный архив
-            onRestore = { task ->
-                // Восстанавливаем из архива
-                archive.RemoveFromArchive(task) //прямое удаление
-                taskList.AddTask(task) //добавление в основной лист обратно
-                syncState()
-                saveTasks()
-                saveArchive()
-            },
-            onDeleteForever = { task ->
-                //Удаляем навсегда из архива
-                archive.ArchiveArray.remove(task)
-                syncState()
-                saveArchive()
-            },
-            onClearAll = {
-                //Удаляем весь архив навсегда
-                archive.DeleteEverything()
-                syncState()
-                saveArchive()
-            },
-            //Отмена
+            archive = archiveTasks,
+            onRestore = { task -> archive.RemoveFromArchive(task) },
+            onDeleteForever = { task -> archive.DeleteForever(task) },  // <-- новый метод
+            onClearAll = { archive.DeleteEverything() },
             onDismiss = { dialog = null }
         )
     }
-
 
     //Основной экран приложения, содержит все, что есть
     Scaffold(
@@ -366,7 +270,7 @@ fun TaskListApp() {
         Box(modifier = Modifier.padding(paddingValues)) {
 
             //Если нет задач
-            if (state.tasks.isEmpty()) {
+            if (tasks.isEmpty()) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center,
@@ -382,18 +286,16 @@ fun TaskListApp() {
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    itemsIndexed(state.tasks) { index, task ->
+                    itemsIndexed(tasks) { index, task ->
                         TaskItem(
                             task = task,
-                            isSelected = state.selectedIndex == index,
+                            isSelected = selectedIndex == index,
                             onClick = {
-                                state = state.copy(
-                                    selectedIndex = if (state.selectedIndex == index) null else index
-                                )
+                                selectedIndex = if (selectedIndex == index) null else index
                             },
-                            doTheButtons = state.selectedIndex == index,
+                            doTheButtons = selectedIndex == index,
                             onEditClick = {
-                                state = state.copy(selectedIndex = index)
+                                selectedIndex = index
                                 dialog = DialogType.EDIT
                             },
                             onDeleteClick = {

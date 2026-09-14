@@ -15,6 +15,8 @@ class Task {
     var creation_date = ""
     var expire_date = ""
 
+    var id: Long = 0
+
     //Функция создать задачу
     fun CreateTask(n_subjname: String, n_desc: String, n_crtdt: String, n_expdt: String) {
         subject_name = n_subjname
@@ -56,4 +58,8 @@ class Task {
     fun GetExpireDate(): String {
         return expire_date
     }
+
+    fun SetId(v: Long) { id = v }
+
+    fun GetId(): Long = id
 }

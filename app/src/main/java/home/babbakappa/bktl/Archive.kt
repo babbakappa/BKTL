@@ -1,37 +1,30 @@
-//Файл Archive.kt
-//Этот файл содержит класс Archive, предназаченный для хранения
-//удаленных задач. Используется в MainUI.kt
-
 package home.babbakappa.bktl
 
-//Класс архива данных
-class Archive {
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 
-    //Главный массив
-    var ArchiveArray = mutableListOf<Task>()
+class Archive(private val dao: TaskDao) {
 
-    //Добавление задачи
+    val archiveFlow: Flow<List<Task>> =
+        dao.observeArchived().map { list -> list.map { it.toTask() } }
+
     fun AddTaskToArchive(obj: Task) {
-        ArchiveArray.add(obj)
+        AppScope.launch {
+            if (obj.GetId() != 0L) dao.archive(obj.GetId())
+            else dao.insert(obj.toEntity().copy(isArchived = true))
+        }
     }
 
-    //Получение всего архива (да, вот так)
-    fun GetEntireArchive(): List<Task> {
-        return ArchiveArray
-    }
-
-    //Функция удалить все
-    fun DeleteEverything() {
-        ArchiveArray.clear()
-    }
-
-    //Функция перезаписать архив
-    fun SetArchive(t: List<Task>) {
-        ArchiveArray = t.toMutableList()
-    }
-
-    //Удаление из архива по объекту
     fun RemoveFromArchive(task: Task) {
-        ArchiveArray.remove(task)
+        AppScope.launch { dao.unarchive(task.GetId()) }
+    }
+
+    fun DeleteEverything() {
+        AppScope.launch { dao.deleteAllArchived() }
+    }
+
+    fun DeleteForever(task: Task) {
+        AppScope.launch { dao.deleteById(task.GetId()) }
     }
 }
