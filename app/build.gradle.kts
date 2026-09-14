@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.ksp)
 }
 
 composeCompiler {
@@ -90,4 +91,7 @@ dependencies {
     implementation("org.apache.poi:poi-ooxml:5.2.3")
     implementation("org.apache.poi:poi:5.2.3")
     implementation("androidx.compose.material:material-icons-extended")
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    ksp(libs.androidx.room.compiler)
 }
