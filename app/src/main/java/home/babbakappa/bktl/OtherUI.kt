@@ -22,6 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+
 //Сам объект задача (прямоугольник) в интерфейсе
 @Composable
 fun TaskItem(task: Task,
@@ -50,11 +51,19 @@ fun TaskItem(task: Task,
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
-            //Название предмета
-            Text(task.GetSubjectName(), fontWeight = FontWeight.Bold, fontSize = 20.sp, color = SetTextColor())
-            //Описание задачи
-            Text(task.GetDescription().replace("[NEWLINE]", "\n"), fontSize = 16.sp, color = SetTextColor())
+            Row(modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    //Название предмета
+                    Text(task.GetSubjectName(), fontWeight = FontWeight.Bold, fontSize = 20.sp, color = SetTextColor())
+                    //Описание задачи
+                    Text(task.GetDescription().replace("[NEWLINE]", "\n"), fontSize = 16.sp, color = SetTextColor())
+                }
 
+                if (task.GetSubjectName() in subjects) {
+                    Text(whatSmileToPut(task), modifier = Modifier.padding(start = 8.dp), fontSize = 24.sp)
+                }
+            }
             //Один ряд с двумя датами
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -106,4 +115,20 @@ fun TaskItem(task: Task,
             }
         }
     }
+}
+
+fun whatSmileToPut(task: Task): String {
+    when (task.GetSubjectName()) {
+        "Иностранный язык" -> return "\uD83C\uDF10"
+        "Алгоритмизация и программирование" -> return "\uD83D\uDDA5\uFE0F"
+        "Вычислительная математика" -> return "\uD83D\uDD22"
+        "Дискретная математика" -> return "\uD83E\uDDE9"
+        "Математический анализ" -> return "♾\uFE0F"
+        "Профессионально-прикладная физическая культура" -> return "\uD83C\uDFC3\u200D♂\uFE0F"
+        "Теория информационных процессов и систем" -> return "\uD83D\uDCCA"
+        "Технология программирования" -> return "\uD83D\uDEE0\uFE0F"
+        "Физика" -> return "\uD83E\uDDF2"
+        else -> return ""
+    }
+
 }
