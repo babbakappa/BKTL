@@ -47,12 +47,6 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 
-
-val subjects = mutableListOf<String>("Иностранный язык", "Алгоритмизация и программирование", "Вычислительная математика",
-    "Дискретная математика", "Математический анализ", "Профессионально-прикладная физическая культура",
-    "Теория информационных процессов и систем", "Технология программирования", "Физика")
-
-
 //Диалог добавления задачи
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -126,36 +120,6 @@ fun AddTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, String, String)
                         colors = need_colors,
                     )
 
-                    androidx.compose.foundation.layout.Box {
-                        IconButton(
-                            onClick = { expanded = true },
-                            colors = IconButtonColors(containerColor = SetButtonColor(), contentColor = SetTextColor(),
-                                disabledContainerColor = SetButtonColor(), disabledContentColor = SetTextColor())
-                        ) {
-                            if (expanded) {
-                                Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = null)
-                            }
-                            else {
-                                Icon(imageVector = Icons.Default.ArrowDropUp, contentDescription = null)
-                            }
-                        }
-
-                        DropdownMenu(
-                            expanded = expanded,
-                            onDismissRequest = { expanded = false },
-                            modifier = Modifier.background(SetTopColor())
-                        ) {
-                            subjects.forEach { option ->
-                                DropdownMenuItem(
-                                    text = { Text(option, color = SetTextColor()) },
-                                    onClick = {
-                                        subject = option
-                                        expanded = false
-                                    }
-                                )
-                            }
-                        }
-                    }
                 }
 
 
@@ -338,36 +302,6 @@ fun EditTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, String, String
                         colors = need_colors,
                     )
 
-                    androidx.compose.foundation.layout.Box {
-                        IconButton(
-                            onClick = { expanded = true },
-                            colors = IconButtonColors(containerColor = SetButtonColor(), contentColor = SetTextColor(),
-                                disabledContainerColor = SetButtonColor(), disabledContentColor = SetTextColor())
-                        ) {
-                            if (expanded) {
-                                Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = null)
-                            }
-                            else {
-                                Icon(imageVector = Icons.Default.ArrowDropUp, contentDescription = null)
-                            }
-                        }
-
-                        DropdownMenu(
-                            expanded = expanded,
-                            onDismissRequest = { expanded = false },
-                            modifier = Modifier.background(SetTopColor())
-                        ) {
-                            subjects.forEach { option ->
-                                DropdownMenuItem(
-                                    text = { Text(option, color = SetTextColor()) },
-                                    onClick = {
-                                        subject = option
-                                        expanded = false
-                                    }
-                                )
-                            }
-                        }
-                    }
                 }
                 OutlinedTextField(
                     value = description,

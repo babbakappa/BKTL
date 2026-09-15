@@ -26,6 +26,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
+import androidx.compose.ui.graphics.Color
 
 enum class DialogType { ADD, DELETE_ALL, ARCHIVE, EXPORT, EDIT }
 
@@ -185,7 +186,7 @@ fun TaskListApp() {
                             dialog = null
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(SetButtonColor(), SetTextColor())
+                    colors = ButtonDefaults.buttonColors(Color(0xFF107C41), SetTextColor())
                 ) { Text("Экспортировать") }
             },
             dismissButton = {
