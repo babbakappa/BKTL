@@ -60,6 +60,10 @@ fun TaskItem(task: Task,
                     Text(task.GetDescription().replace("[NEWLINE]", "\n"), fontSize = 16.sp, color = SetTextColor())
                 }
 
+                if (task.GetSubjectName() in subjects) {
+                    Text(whatSmileToPut(task), modifier = Modifier.padding(start = 8.dp), fontSize = 24.sp)
+                }
+
             }
             //Один ряд с двумя датами
             Row(
