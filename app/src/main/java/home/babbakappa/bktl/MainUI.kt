@@ -3,6 +3,7 @@
 
 package home.babbakappa.bktl
 
+import android.app.Activity
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -18,6 +19,8 @@ import java.io.File
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material3.AlertDialog
 import android.content.Intent
+import android.util.Log
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.MoreVert
@@ -27,6 +30,9 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
+import kotlinx.coroutines.Dispatchers
 
 enum class DialogType { ADD, DELETE_ALL, ARCHIVE, EXPORT, EDIT }
 
@@ -34,6 +40,28 @@ enum class DialogType { ADD, DELETE_ALL, ARCHIVE, EXPORT, EDIT }
 @Composable
 @OptIn(ExperimentalMaterial3Api::class) //костыль для нормального запуска приложения из-за какой-то функции
 fun TaskListApp() {
+
+    val view = LocalView.current
+    val darkTheme = isSystemInDarkTheme()
+
+    if (!view.isInEditMode) {
+        SideEffect {
+            val window = (view.context as Activity).window
+            val insetsController = WindowCompat.getInsetsController(window, view)
+
+            insetsController.isAppearanceLightStatusBars = !darkTheme
+        }
+    }
+
+    val currentTextColor = SetTextColor()
+    val currentTopColor = SetTopColor()
+    val currentBottomColor = SetBottomColor()
+    val currentTaskColor = SetTaskColor()
+    val currentSelectedTaskColor = SetSelectedTaskColor()
+    val currentButtonColor = SetButtonColor()
+
+    val scope = rememberCoroutineScope()
+
     //Текущий контекст приложения
     val context = LocalContext.current
 
@@ -50,164 +78,18 @@ fun TaskListApp() {
     var dialog by remember { mutableStateOf<DialogType?>(null) }
 
     fun moveToArchive(task: Task) {
-        taskList.DeleteTask(task) // = archive(id)
+        taskList.DeleteTask(task)
+        NotificationHelper.cancelNotification(task, context)
         selectedIndex = null
     }
 
     fun moveAllToArchive() {
-        taskList.DeleteEverything()        // = archiveAll()
-    }
-
-    //Для трех точек сверху
-    @Composable
-    fun ThreeDotsMenu() {
-        var expanded by remember { mutableStateOf(false) }
-
-        Column {
-            IconButton(
-                onClick = { expanded = !expanded }
-            ) {
-                Icon(
-                    imageVector = Icons.Default.MoreVert,
-                    contentDescription = "Меню"
-                )
-            }
-
-            // Выпадающий список
-            DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-                containerColor = SetBGColor()
-            ) {
-                DropdownMenuItem(
-                    text = { Text("Удалить все", color = SetTextColor()) },
-                    onClick = {
-                        expanded = false
-                        dialog = DialogType.DELETE_ALL
-                    }
-                )
-                DropdownMenuItem(
-                    text = { Text("Архив задач", color = SetTextColor()) },
-                    onClick = {
-                        expanded = false
-                        dialog = DialogType.ARCHIVE
-                    }
-                )
-                DropdownMenuItem(
-                    text = { Text("Экспортировать", color = SetTextColor()) },
-                    onClick = {
-                        expanded = false
-                        dialog = DialogType.EXPORT
-                    }
-                )
-            }
+        for (task in tasks) {
+            NotificationHelper.cancelNotification(task, context)
         }
-
-
+        taskList.DeleteEverything()
     }
 
-    @Composable
-    fun chosenToAdd() {
-        AddTaskDialog(
-            onDismiss = { dialog = null},
-            onAdd = { subject, desc, cd, ed ->
-                //Создается объект и добавляется в массив
-                val newTask = taskList.CreateAndAddNewTaskWithReturn(subject, desc, cd, ed)
-                NotificationHelper.scheduleNotification(newTask, context)
-
-                dialog = null
-            }
-        )
-    }
-
-    @Composable
-    fun chosenToDeleteAll() {
-        AlertDialog(
-            onDismissRequest = { dialog = null },
-            title = { Text("Удалить все задачи?", color = SetTextColor()) },
-            text = { Text("Задачи будут перемещены в архив.", color = SetTextColor()) },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        moveAllToArchive()
-                        dialog = null
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = SetButtonColor())
-                ) { Text("Удалить всё",  color = SetTextColor()) }
-            },
-            dismissButton = {
-                TextButton(onClick = { dialog = null }) {
-                    Text("Отмена",  color = SetTextColor())
-                }
-            },
-            containerColor = SetTopColor()
-        )
-    }
-
-
-    @Composable
-    fun chosenToEdit() {
-        val idx = selectedIndex ?: return
-        val task = tasks.getOrNull(idx) ?: return
-        EditTaskDialog(
-            onAdd = { subject, desc, cd, ed ->       // порядок: subject, description, creationDate, expireDate
-                NotificationHelper.cancelNotification(task, context)
-                taskList.EditTask(task, subject, desc, cd, ed)
-                NotificationHelper.scheduleNotification(task, context)
-                dialog = null
-            },
-            onDismiss = { dialog = null },
-            taskitself = task
-        )
-    }
-
-    @Composable
-    fun chosenToExport() {
-        val scope = rememberCoroutineScope()
-        AlertDialog(
-            onDismissRequest = { dialog = null},
-            title = { Text("Экспорт отчёта",  color = SetTextColor()) },
-            text = { Text("Создать файл с текущими задачами?", color = SetTextColor()) },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        scope.launch {
-                            val uri = exportTasksToExcel(context, tasks)
-                            if (uri != null) {
-                                // Открываем файл
-                                val intent = Intent(Intent.ACTION_VIEW).apply {
-                                    setData(uri)
-                                    flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
-                                }
-                                context.startActivity(Intent.createChooser(intent, "Открыть отчёт"))
-                            } else {
-                                // Показать ошибку (Toast)
-                            }
-                            dialog = null
-                        }
-                    },
-                    colors = ButtonDefaults.buttonColors(Color(0xFF107C41), SetTextColor())
-                ) { Text("Экспортировать") }
-            },
-            dismissButton = {
-                TextButton(onClick = { dialog = null }) {
-                    Text("Отмена", color = SetTextColor())
-                }
-            }
-            ,containerColor = SetTopColor()
-        )
-    }
-
-    @Composable
-    fun chosenArchive() {
-        ArchiveDialog(
-            archive = archiveTasks,
-            onRestore = { task -> archive.RemoveFromArchive(task) },
-            onDeleteForever = { task -> archive.DeleteForever(task) },  // <-- новый метод
-            onClearAll = { archive.DeleteEverything() },
-            onDismiss = { dialog = null }
-        )
-    }
 
     //Основной экран приложения, содержит все, что есть
     Scaffold(
@@ -215,19 +97,19 @@ fun TaskListApp() {
         topBar =
             { TopAppBar(
             title = {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Row(modifier = Modifier.fillMaxWidth().statusBarsPadding(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text("Список задач универа", fontSize = 24.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(8.dp))
-                    ThreeDotsMenu()
+                    ThreeDotsMenu(onMenuClick = { dialog = it })
                 }
                     },
             colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = SetTopColor(),
-                titleContentColor = SetTextColor()
+                containerColor = currentTopColor,
+                titleContentColor = currentTextColor
             )
         ) },
 
         //Нижняя панель, которая содержит все кнопки действий
-        bottomBar = { Surface(modifier = Modifier.fillMaxWidth().height((128).dp), tonalElevation = 6.dp, color = SetBottomColor()) {
+        bottomBar = { Surface(modifier = Modifier.fillMaxWidth().height((128).dp), tonalElevation = 6.dp, color = currentBottomColor) {
 
             //Колонна со всеми кнопками
             Column(
@@ -245,9 +127,11 @@ fun TaskListApp() {
                     val fb = 240
                     //Кнопка добавления задачи
                     IconButton(
-                        onClick = {dialog = DialogType.ADD},
-                        colors = IconButtonColors(contentColor = SetTextColor(), containerColor = SetTopColor(),
-                            disabledContentColor = SetTextColor(), disabledContainerColor = SetTopColor())
+                        onClick = {
+                            Log.d("PERF", "click t=${System.currentTimeMillis()}")
+                            dialog = DialogType.ADD},
+                        colors = IconButtonColors(contentColor = currentTextColor, containerColor = currentButtonColor,
+                            disabledContentColor = currentTextColor, disabledContainerColor = currentTopColor)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Add,
@@ -277,7 +161,7 @@ fun TaskListApp() {
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Text("Задач пока нет", fontSize = 20.sp, color = SetTextColor())
+                    Text("Задач пока нет", fontSize = 20.sp, color = currentTextColor)
                 }
             }
 
@@ -288,7 +172,7 @@ fun TaskListApp() {
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    itemsIndexed(tasks) { index, task ->
+                    itemsIndexed(tasks, key = { _, task -> task.GetId() }) { index, task ->
                         TaskItem(
                             task = task,
                             isSelected = selectedIndex == index,
@@ -302,7 +186,9 @@ fun TaskListApp() {
                             },
                             onDeleteClick = {
                                 moveToArchive(task)
-                            }
+                            },
+                            currentTaskColor,
+                            currentSelectedTaskColor
                         )
                     }
                 }
@@ -315,28 +201,102 @@ fun TaskListApp() {
 
         //Если выбрано добавить задачу
         DialogType.ADD -> {
-            chosenToAdd()
+            AddTaskDialog(onDismiss = {dialog = null}, onAdd = {subject, desc, cd, ed ->
+                taskList.CreateAndAddNewTask(subject, desc, cd, ed) // Используем обычный метод
+                scope.launch(Dispatchers.IO) {
+                    val tempTask = Task().apply { CreateTask(subject, desc, cd, ed) }
+                    NotificationHelper.scheduleNotification(tempTask, context)
+                }
+                dialog = null})
         }
 
         //Если выбрарно удалить все задачи
         DialogType.DELETE_ALL -> {
-            chosenToDeleteAll()
+            AlertDialog(
+                onDismissRequest = { dialog = null },
+                title = { Text("Удалить все задачи?", color = currentTextColor) },
+                text = { Text("Задачи будут перемещены в архив.", color = currentTextColor) },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            moveAllToArchive()
+                            dialog = null
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = currentButtonColor)
+                    ) { Text("Удалить всё",  color = currentTextColor) }
+                },
+                dismissButton = {
+                    TextButton(onClick = { dialog = null }) {
+                        Text("Отмена",  color = currentTextColor)
+                    }
+                },
+                containerColor = currentTopColor
+            )
         }
 
         //Если нажал кнопку "Архив"
         DialogType.ARCHIVE -> {
-            chosenArchive()
+            ArchiveDialog(
+                archive = archiveTasks, // Передаем состояние
+                onRestore = { task -> archive.RemoveFromArchive(task) },
+                onDeleteForever = { task -> archive.DeleteForever(task) },
+                onClearAll = { archive.DeleteEverything() },
+                onDismiss = { dialog = null }
+            )
         }
 
         //Если выбран экспорт в эксель
         //Лучше не лезть сюда, работает и ладно
         DialogType.EXPORT -> {
-            chosenToExport()
+            AlertDialog(
+                onDismissRequest = { dialog = null },
+                title = { Text("Экспорт отчёта",  color = currentTextColor) },
+                text = { Text("Создать файл с текущими задачами?", color = currentTextColor) },
+                confirmButton = {Button(
+                    onClick = {
+
+                        scope.launch {
+                            val uri = exportTasksToExcel(context, tasks) // tasks и context доступны тут
+                            if (uri != null) {
+                                val intent = Intent(Intent.ACTION_VIEW).apply {
+                                    setData(uri)
+                                    flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
+                                }
+                                context.startActivity(Intent.createChooser(intent, "Открыть отчёт"))
+                            }
+                            dialog = null
+                        }
+
+                    },
+                    colors = ButtonDefaults.buttonColors(Color(0xFF107C41), Color.White)
+                ) { Text("Экспортировать") }},
+                dismissButton = {
+                    TextButton(onClick = {dialog = null} ) {
+                        Text("Отмена", color = currentTextColor)
+                    }
+                }
+                ,containerColor = currentTopColor)
+
         }
 
         //Если выбрано редактирование задачи
         DialogType.EDIT -> {
-            chosenToEdit()
+            val idx = selectedIndex
+            val task = idx?.let { tasks.getOrNull(it) }
+            if (task != null) {
+                EditTaskDialog(
+                    onAdd = { subject, desc, cd, ed ->
+                        scope.launch(Dispatchers.IO) {
+                            NotificationHelper.cancelNotification(task, context)
+                            taskList.EditTask(task, subject, desc, cd, ed)
+                            NotificationHelper.scheduleNotification(task, context)
+                        } // НАДО ДОБАВИТЬ ЭТУ СТРОКУ
+                        dialog = null
+                    },
+                    onDismiss = { dialog = null },
+                    taskitself = task
+                )
+            }
         }
 
         //Обработка Null
@@ -344,6 +304,3 @@ fun TaskListApp() {
     }
 
 }
-
-//Функция загрузки данных из файла БД
-fun loadTasks(filePath: String): List<Task> = LoadArrayFromFile(filePath)

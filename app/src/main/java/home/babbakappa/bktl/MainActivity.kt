@@ -9,6 +9,7 @@ import android.os.Bundle
 import androidx.compose.material3.*
 import android.os.Build
 import android.util.Log
+import androidx.core.view.WindowCompat
 import kotlinx.coroutines.launch
 import java.io.File
 
@@ -37,6 +38,8 @@ class MainActivity : ComponentActivity() {
         }
 
         migrateLegacyDataIfNeeded()
+
+        WindowCompat.setDecorFitsSystemWindows(window, false)
 
         setContent {
             MaterialTheme {

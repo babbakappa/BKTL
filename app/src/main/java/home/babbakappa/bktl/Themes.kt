@@ -100,7 +100,7 @@ fun SetTextColor(): Color {
 @Composable
 fun SetRedColor(): Color {
     if (isSystemInDarkTheme()) {
-        return Color(0xFFFF2222)
+        return Color(0xFFFF4500)
     }
     else {
         return Color(0xFFFF0000)

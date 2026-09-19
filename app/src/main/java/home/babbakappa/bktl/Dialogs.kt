@@ -2,6 +2,7 @@ package home.babbakappa.bktl
 
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
+import android.util.Log
 import android.widget.DatePicker
 import android.widget.TimePicker
 import androidx.compose.foundation.background
@@ -51,6 +52,8 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, String, String) -> Unit) {
+
+    Log.d("PERF", "dialog composed t=${System.currentTimeMillis()}")
 
     //Ебучка цвет рамок и текста полей ввода
     val need_colors = OutlinedTextFieldDefaults.colors(

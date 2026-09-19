@@ -60,7 +60,7 @@ fun ArchiveDialog(
                             .heightIn(max = 300.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        items(archive) { task ->
+                        items(archive, key = { it.GetId() }) { task ->
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
                                 elevation = CardDefaults.cardElevation(2.dp),

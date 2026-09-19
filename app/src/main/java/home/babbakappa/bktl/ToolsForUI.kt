@@ -21,12 +21,14 @@ import java.text.SimpleDateFormat
 import java.util.*
 import androidx.compose.ui.graphics.Color
 
+private val deadlineFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
+
 //Функция для определения цвета чтобы подсветить дату дедлайна
 @Composable
 fun getDeadLineColor(other_date: String, pattern: String = "dd.MM.yyyy"): Color {
-    val formatter = DateTimeFormatter.ofPattern(pattern)
+
     val today = LocalDate.now()
-    val deadline = LocalDate.parse(other_date, formatter)
+    val deadline = LocalDate.parse(other_date, deadlineFormatter)
 
     val daysLeft = ChronoUnit.DAYS.between(today, deadline)
 
@@ -41,6 +43,8 @@ fun getDeadLineColor(other_date: String, pattern: String = "dd.MM.yyyy"): Color 
 
     return rescolor
 }
+
+
 
 //Функция для экспорта отчета в формате xlsx
 suspend fun exportTasksToExcel(context: Context, tasks: List<Task>): Uri? {

@@ -1,6 +1,7 @@
 package home.babbakappa.bktl
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,13 +10,25 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonColors
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -30,12 +43,12 @@ fun TaskItem(task: Task,
              onClick: () -> Unit,
              doTheButtons: Boolean,
              onEditClick: () -> Unit,   // Добавили
-             onDeleteClick: () -> Unit) {
+             onDeleteClick: () -> Unit,
+             defcolor: Color,
+             selcolor: Color) {
 
     //Цвет если выделено или не выделено
-    val defcolor = SetTaskColor()
     var rescolor: Color
-    val selcolor = SetSelectedTaskColor()
     if (isSelected) {
         rescolor = selcolor
     }
@@ -126,6 +139,61 @@ fun whatSmileToPut(task: Task): String {
         "Технология программирования" -> return "\uD83D\uDEE0\uFE0F"
         "Физика" -> return "\uD83E\uDDF2"
         else -> return ""
+    }
+
+}
+
+
+
+
+//Для трех точек сверху
+@Composable
+fun ThreeDotsMenu(onMenuClick: (DialogType) -> Unit) {
+
+    val currentTextColor = SetTextColor()
+    val currentBGColor = SetBGColor()
+    val currentTaskColor = SetTaskColor()
+
+    var expanded by remember { mutableStateOf(false) }
+
+    Column {
+        IconButton(
+            onClick = { expanded = !expanded }
+        ) {
+            Icon(
+                imageVector = Icons.Default.MoreVert,
+                contentDescription = "Меню"
+            )
+        }
+
+        // Выпадающий список
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            containerColor = if (isSystemInDarkTheme()) currentBGColor else currentTaskColor
+        ) {
+            DropdownMenuItem(
+                text = { Text("Удалить все", color = currentTextColor) },
+                onClick = {
+                    expanded = false
+                    onMenuClick(DialogType.DELETE_ALL)
+                }
+            )
+            DropdownMenuItem(
+                text = { Text("Архив задач", color = currentTextColor) },
+                onClick = {
+                    expanded = false
+                    onMenuClick(DialogType.ARCHIVE)
+                }
+            )
+            DropdownMenuItem(
+                text = { Text("Экспортировать", color = currentTextColor) },
+                onClick = {
+                    expanded = false
+                    onMenuClick(DialogType.EXPORT)
+                }
+            )
+        }
     }
 
 }
