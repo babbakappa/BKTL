@@ -33,6 +33,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 enum class DialogType { ADD, DELETE_ALL, ARCHIVE, EXPORT, EDIT }
 
@@ -84,10 +85,12 @@ fun TaskListApp() {
     }
 
     fun moveAllToArchive() {
-        for (task in tasks) {
-            NotificationHelper.cancelNotification(task, context)
+        scope.launch(Dispatchers.IO) {
+            for (task in tasks) {
+                NotificationHelper.cancelNotification(task, context)
+            }
+            taskList.DeleteEverything()
         }
-        taskList.DeleteEverything()
     }
 
 
@@ -201,13 +204,18 @@ fun TaskListApp() {
 
         //Если выбрано добавить задачу
         DialogType.ADD -> {
-            AddTaskDialog(onDismiss = {dialog = null}, onAdd = {subject, desc, cd, ed ->
-                taskList.CreateAndAddNewTask(subject, desc, cd, ed) // Используем обычный метод
-                scope.launch(Dispatchers.IO) {
-                    val tempTask = Task().apply { CreateTask(subject, desc, cd, ed) }
-                    NotificationHelper.scheduleNotification(tempTask, context)
+            AddTaskDialog(
+                onDismiss = { dialog = null },
+                onAdd = { subject, desc, cd, ed ->
+                    scope.launch {
+                        val realTask = taskList.CreateAndAddNewTaskWithReturn(subject, desc, cd, ed)
+                        withContext(Dispatchers.IO) {
+                            NotificationHelper.scheduleNotification(realTask, context)
+                        }
+                    }
+                    dialog = null
                 }
-                dialog = null})
+            )
         }
 
         //Если выбрарно удалить все задачи

@@ -4,9 +4,11 @@
 
 package home.babbakappa.bktl
 
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 
 class TaskList(private val dao: TaskDao) {
@@ -25,14 +27,16 @@ class TaskList(private val dao: TaskDao) {
         }
     }
 
-    fun CreateAndAddNewTaskWithReturn(subjname: String, gr: String, descr: String, cd: String): Task {
+    suspend fun CreateAndAddNewTaskWithReturn(subjname: String, descr: String, cd: String, ed: String): Task = withContext(
+        Dispatchers.IO) {
         val temp = Task()
-        temp.CreateTask(subjname, gr, descr, cd)
-        AppScope.launch {
-            val newId = dao.insert(temp.toEntity())
-            temp.SetId(newId)
-        }
-        return temp
+        temp.CreateTask(subjname, descr, cd, ed)
+
+        // Дожидаемся реального ID от Room
+        val newId = dao.insert(temp.toEntity())
+        temp.SetId(newId)
+
+        return@withContext temp
     }
 
     fun AddTask(t: Task) {

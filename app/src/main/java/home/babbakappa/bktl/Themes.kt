@@ -116,7 +116,6 @@ fun SetPurpleColor(): Color {
         return Color(0xFFFF00FF)
     }
 }
-
 @Composable
 fun SetYellowColor(): Color {
     if (isSystemInDarkTheme()) {
