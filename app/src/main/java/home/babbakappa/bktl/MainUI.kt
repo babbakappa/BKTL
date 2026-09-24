@@ -21,6 +21,7 @@ import androidx.compose.material3.AlertDialog
 import android.content.Intent
 import android.util.Log
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.MoreVert
@@ -77,15 +78,19 @@ fun TaskListApp() {
 // selectedIndex оставляем как отдельный стейт — это единственное, что было нужно из UIState
     var selectedIndex by remember { mutableStateOf<Int?>(null) }
     var dialog by remember { mutableStateOf<DialogType?>(null) }
+    var selectedTaskId by remember { mutableStateOf<Long?>(null) }
 
     fun moveToArchive(task: Task) {
-        taskList.DeleteTask(task)
-        NotificationHelper.cancelNotification(task, context)
-        selectedIndex = null
+        scope.launch {
+            taskList.DeleteTask(task) // Теперь это suspend
+            // Взаимодействие с контекстом/уведомлениями безопасно оставляем на Main потоке
+            NotificationHelper.cancelNotification(task, context)
+            selectedTaskId = null
+        }
     }
 
     fun moveAllToArchive() {
-        scope.launch(Dispatchers.IO) {
+        scope.launch {
             for (task in tasks) {
                 NotificationHelper.cancelNotification(task, context)
             }
@@ -175,23 +180,23 @@ fun TaskListApp() {
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    itemsIndexed(tasks, key = { _, task -> task.GetId() }) { index, task ->
+                    items(tasks, key = { task -> task.GetId() }) { task ->
                         TaskItem(
                             task = task,
-                            isSelected = selectedIndex == index,
+                            isSelected = selectedTaskId == task.GetId(), // Быстрое сравнение Long без indexOf
                             onClick = {
-                                selectedIndex = if (selectedIndex == index) null else index
+                                selectedTaskId = if (selectedTaskId == task.GetId()) null else task.GetId()
                             },
-                            doTheButtons = selectedIndex == index,
+                            doTheButtons = selectedTaskId == task.GetId(),
                             onEditClick = {
-                                selectedIndex = index
+                                selectedTaskId = task.GetId()
                                 dialog = DialogType.EDIT
                             },
                             onDeleteClick = {
                                 moveToArchive(task)
                             },
-                            currentTaskColor,
-                            currentSelectedTaskColor
+                            defcolor = currentTaskColor,
+                            selcolor = currentSelectedTaskColor
                         )
                     }
                 }
@@ -204,18 +209,15 @@ fun TaskListApp() {
 
         //Если выбрано добавить задачу
         DialogType.ADD -> {
-            AddTaskDialog(
-                onDismiss = { dialog = null },
-                onAdd = { subject, desc, cd, ed ->
-                    scope.launch {
-                        val realTask = taskList.CreateAndAddNewTaskWithReturn(subject, desc, cd, ed)
-                        withContext(Dispatchers.IO) {
-                            NotificationHelper.scheduleNotification(realTask, context)
-                        }
-                    }
-                    dialog = null
+            AddTaskDialog(onDismiss = { dialog = null }, onAdd = { subject, desc, cd, ed ->
+                scope.launch {
+                    // Ждем завершения вставки и получаем задачу с реальным ID из базы данных
+                    val realTask = taskList.CreateAndAddNewTaskWithReturn(subject, desc, cd, ed)
+                    // Планируем уведомление, зная точный ID задачи
+                    NotificationHelper.scheduleNotification(realTask, context)
                 }
-            )
+                dialog = null
+            })
         }
 
         //Если выбрарно удалить все задачи
@@ -245,10 +247,10 @@ fun TaskListApp() {
         //Если нажал кнопку "Архив"
         DialogType.ARCHIVE -> {
             ArchiveDialog(
-                archive = archiveTasks, // Передаем состояние
-                onRestore = { task -> archive.RemoveFromArchive(task) },
-                onDeleteForever = { task -> archive.DeleteForever(task) },
-                onClearAll = { archive.DeleteEverything() },
+                archive = archiveTasks,
+                onRestore = { task -> scope.launch { archive.RemoveFromArchive(task) } },
+                onDeleteForever = { task -> scope.launch { archive.DeleteForever(task) } },
+                onClearAll = { scope.launch { archive.DeleteEverything() } },
                 onDismiss = { dialog = null }
             )
         }
@@ -289,20 +291,20 @@ fun TaskListApp() {
 
         //Если выбрано редактирование задачи
         DialogType.EDIT -> {
-            val idx = selectedIndex
-            val task = idx?.let { tasks.getOrNull(it) }
+            val currentId = selectedTaskId
+            val task = tasks.find { it.GetId() == currentId }
             if (task != null) {
                 EditTaskDialog(
+                    taskitself = task,
+                    onDismiss = { dialog = null },
                     onAdd = { subject, desc, cd, ed ->
-                        scope.launch(Dispatchers.IO) {
+                        scope.launch {
                             NotificationHelper.cancelNotification(task, context)
                             taskList.EditTask(task, subject, desc, cd, ed)
                             NotificationHelper.scheduleNotification(task, context)
-                        } // НАДО ДОБАВИТЬ ЭТУ СТРОКУ
+                        }
                         dialog = null
-                    },
-                    onDismiss = { dialog = null },
-                    taskitself = task
+                    }
                 )
             }
         }

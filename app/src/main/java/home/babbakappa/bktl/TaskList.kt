@@ -16,55 +16,32 @@ class TaskList(private val dao: TaskDao) {
     val tasksFlow: Flow<List<Task>> =
         dao.observeActive().map { list -> list.map { it.toTask() } }
 
-    fun CreateAndAddNewTask(subjname: String, desc: String, cd: String, ed: String) {
-        AppScope.launch {
-            dao.insert(TaskEntity(
-                subjectName = subjname,
-                description = desc,
-                creationDate = cd,
-                expireDate = ed
-            ))
-        }
+    suspend fun CreateAndAddNewTask(subjname: String, desc: String, cd: String, ed: String) {
+        dao.insert(TaskEntity(subjectName = subjname, description = desc, creationDate = cd, expireDate = ed))
     }
 
-    suspend fun CreateAndAddNewTaskWithReturn(subjname: String, descr: String, cd: String, ed: String): Task = withContext(
-        Dispatchers.IO) {
+    suspend fun CreateAndAddNewTaskWithReturn(subjname: String, descr: String, cd: String, ed: String): Task {
         val temp = Task()
         temp.CreateTask(subjname, descr, cd, ed)
-
-        // Дожидаемся реального ID от Room
-        val newId = dao.insert(temp.toEntity())
+        val newId = dao.insert(temp.toEntity()) // Room выполняет это на фоновом потоке
         temp.SetId(newId)
-
-        return@withContext temp
+        return temp
     }
 
-    fun AddTask(t: Task) {
-        AppScope.launch {
-            if (t.GetId() != 0L) dao.unarchive(t.GetId())
-            else dao.insert(t.toEntity())
-        }
+    suspend fun AddTask(t: Task) {
+        if (t.GetId() != 0L) dao.unarchive(t.GetId())
+        else dao.insert(t.toEntity())
     }
 
-    fun DeleteTask(task: Task) {
-        AppScope.launch { dao.archive(task.GetId()) }
+    suspend fun DeleteTask(task: Task) {
+        dao.archive(task.GetId())
     }
 
-    fun DeleteEverything() {
-        AppScope.launch { dao.archiveAll() }
+    suspend fun DeleteEverything() {
+        dao.archiveAll()
     }
 
-    // Заменяем EditTaskByIndex на EditTask (передаём сам объект — так надёжнее с Flow)
-    fun EditTask(task: Task, subject: String, desc: String, cd: String, ed: String) {
-        AppScope.launch {
-            dao.update(TaskEntity(
-                id = task.GetId(),
-                subjectName = subject,
-                description = desc,
-                creationDate = cd,
-                expireDate = ed,
-                isArchived = false
-            ))
-        }
+    suspend fun EditTask(task: Task, subject: String, desc: String, cd: String, ed: String) {
+        dao.update(TaskEntity(id = task.GetId(), subjectName = subject, description = desc, creationDate = cd, expireDate = ed, isArchived = false))
     }
 }
