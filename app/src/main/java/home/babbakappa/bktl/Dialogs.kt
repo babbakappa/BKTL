@@ -5,7 +5,6 @@ import android.app.TimePickerDialog
 import android.util.Log
 import android.widget.DatePicker
 import android.widget.TimePicker
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,20 +12,12 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.ArrowDropUp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonColors
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
@@ -141,7 +132,7 @@ fun AddTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, String, String)
                     OutlinedTextField(
                         value = creationDate,
                         onValueChange = { creationDate = it },
-                        label = { Text("Дата создания", color = SetTextColor()) },
+                        label = { Text("Создано", color = SetTextColor()) },
                         modifier = Modifier.weight(1f),
                         readOnly = true,
                         colors = need_colors
@@ -321,7 +312,7 @@ fun EditTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, String, String
                     OutlinedTextField(
                         value = creationDate,
                         onValueChange = { creationDate = it },
-                        label = { Text("Дата создания", color = SetTextColor()) },
+                        label = { Text("Создано", color = SetTextColor()) },
                         modifier = Modifier.weight(1f),
                         readOnly = true,
                         colors = need_colors

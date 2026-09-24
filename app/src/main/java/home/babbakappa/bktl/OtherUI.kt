@@ -1,5 +1,7 @@
 package home.babbakappa.bktl
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -11,9 +13,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -22,15 +21,14 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonColors
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -42,7 +40,7 @@ fun TaskItem(task: Task,
              isSelected: Boolean,
              onClick: () -> Unit,
              doTheButtons: Boolean,
-             onEditClick: () -> Unit,   // Добавили
+             onEditClick: () -> Unit,
              onDeleteClick: () -> Unit,
              defcolor: Color,
              selcolor: Color) {
@@ -63,10 +61,10 @@ fun TaskItem(task: Task,
         colors = CardDefaults.cardColors(containerColor = rescolor),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
+        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Row(modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween ) {
-                Column(modifier = Modifier.weight(1f)) {
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     //Название предмета
                     Text(task.GetSubjectName(), fontWeight = FontWeight.Bold, fontSize = 20.sp, color = SetTextColor())
                     //Описание задачи
@@ -127,28 +125,12 @@ fun TaskItem(task: Task,
     }
 }
 
-fun whatSmileToPut(task: Task): String {
-    when (task.GetSubjectName()) {
-        "Иностранный язык" -> return "\uD83C\uDF10"
-        "Алгоритмизация и программирование" -> return "\uD83D\uDDA5\uFE0F"
-        "Вычислительная математика" -> return "\uD83D\uDD22"
-        "Дискретная математика" -> return "\uD83E\uDDE9"
-        "Математический анализ" -> return "♾\uFE0F"
-        "Профессионально-прикладная физическая культура" -> return "\uD83C\uDFC3\u200D♂\uFE0F"
-        "Теория информационных процессов и систем" -> return "\uD83D\uDCCA"
-        "Технология программирования" -> return "\uD83D\uDEE0\uFE0F"
-        "Физика" -> return "\uD83E\uDDF2"
-        else -> return ""
-    }
-
-}
-
-
-
-
 //Для трех точек сверху
 @Composable
 fun ThreeDotsMenu(onMenuClick: (DialogType) -> Unit) {
+
+    val context = LocalContext.current
+    val url = "https://github.com/babbakappa/BKTL"
 
     val currentTextColor = SetTextColor()
     val currentBGColor = SetBGColor()
@@ -193,7 +175,14 @@ fun ThreeDotsMenu(onMenuClick: (DialogType) -> Unit) {
                     onMenuClick(DialogType.EXPORT)
                 }
             )
+            DropdownMenuItem(
+                text = { Text("GitHub", color = currentTextColor) },
+                onClick = {
+                    expanded = false
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                    context.startActivity(intent)
+                }
+            )
         }
     }
-
 }

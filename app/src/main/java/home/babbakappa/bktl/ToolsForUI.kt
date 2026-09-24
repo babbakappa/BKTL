@@ -10,7 +10,6 @@ import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import android.content.Context
 import android.net.Uri
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.core.content.FileProvider
 import kotlinx.coroutines.Dispatchers
