@@ -2,6 +2,8 @@ package home.babbakappa.bktl
 
 import android.content.Context
 import androidx.room.*
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -100,13 +102,33 @@ abstract class AppDatabase : RoomDatabase() {
 
     companion object {
         @Volatile private var INSTANCE: AppDatabase? = null
+
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Выполняем SQL-запрос создания новой таблицы предметов.
+                // Строго соблюдаем типы Room: id (INTEGER NOT NULL), name (TEXT NOT NULL)
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `subjects` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, 
+                        `name` TEXT NOT NULL
+                    )
+                """.trimIndent())
+            }
+        }
+
         fun get(context: Context): AppDatabase =
             INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
                     context.applicationContext,
                     AppDatabase::class.java,
                     "tasks.db"
-                ).fallbackToDestructiveMigration().build().also { INSTANCE = it }
+                )
+                    // Подключаем скрипт перехода без потери данных
+                    .addMigrations(MIGRATION_2_3)
+                    // Оставляем деструктивный метод только на случай непредвиденных сбоев
+                    .fallbackToDestructiveMigration()
+                    .build()
+                    .also { INSTANCE = it }
             }
     }
 }
