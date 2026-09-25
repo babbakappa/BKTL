@@ -19,6 +19,12 @@ data class TaskEntity(
     val isArchived: Boolean = false
 )
 
+@Entity(tableName = "subjects")
+data class SubjectEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    @ColumnInfo(name = "name") val name: String
+)
+
 fun TaskEntity.toTask(): Task {
     val t = Task()
     t.SetId(id)
@@ -69,10 +75,26 @@ interface TaskDao {
     // или сразу удобный булев:
     @Query("SELECT COUNT(*) > 0 FROM tasks")
     suspend fun hasAnyTask(): Boolean
+
+    @Query("SELECT * FROM subjects ORDER BY name ASC")
+    fun observeAllSubjects(): kotlinx.coroutines.flow.Flow<List<SubjectEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertSubject(subject: SubjectEntity): Long
+
+    @Query("SELECT COUNT(*) > 0 FROM subjects WHERE name = :name")
+    suspend fun hasSubject(name: String): Boolean
+
+    @Query("DELETE FROM subjects")
+    suspend fun deleteAllSubjects()
+
+    @Delete
+    suspend fun deleteSubject(subject: SubjectEntity)
+
 }
 
 
-@Database(entities = [TaskEntity::class], version = 1, exportSchema = false)
+@Database(entities = [TaskEntity::class, SubjectEntity::class], version = 3, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun taskDao(): TaskDao
 

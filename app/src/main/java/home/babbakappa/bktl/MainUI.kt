@@ -3,6 +3,7 @@
 
 package home.babbakappa.bktl
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -17,7 +18,10 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material3.AlertDialog
 import android.content.Intent
+import android.net.Uri
 import android.util.Log
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -31,7 +35,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
-enum class DialogType { ADD, DELETE_ALL, ARCHIVE, EXPORT, EDIT }
+enum class DialogType { ADD, DELETE_ALL, ARCHIVE, EXPORT, EDIT, SUBJECTS }
 
 //Главная функция, в которой работает интерфейс и используется ядро приложения
 @Composable
@@ -302,6 +306,13 @@ fun TaskListApp() {
                     }
                 )
             }
+        }
+
+        DialogType.SUBJECTS -> {
+            SubjectsManagementDialog(
+                dao = dao,
+                onDismiss = { dialog = null }
+            )
         }
 
         //Обработка Null

@@ -9,26 +9,37 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.ArrowDropUp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonColors
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -43,6 +54,11 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, String, String) -> Unit) {
+
+    val context = LocalContext.current
+    val dao = remember { AppDatabase.get(context).taskDao() }
+    val dbSubjects by dao.observeAllSubjects().collectAsState(initial = emptyList())
+    var dropdownExpanded by remember { mutableStateOf(false) }
 
     Log.d("PERF", "dialog composed t=${System.currentTimeMillis()}")
 
@@ -62,7 +78,6 @@ fun AddTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, String, String)
     var description by remember { mutableStateOf("") }
     var creationDate by remember { mutableStateOf("") }
     var expireDate by remember { mutableStateOf("") }
-    val context = LocalContext.current
     val dateFormat = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
 
     //Нужно для того, чтобы обработать пустые поля при попытке ввода
@@ -106,16 +121,57 @@ fun AddTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, String, String)
                 Row(modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp), // Отступ между полем и кнопкой
                     verticalAlignment = Alignment.CenterVertically) {
-                    OutlinedTextField(
-                        value = subject,
-                        onValueChange = { subject = it },
-                        label = { Text("Предмет", color = SetTextColor()) },
-                        modifier = Modifier.weight(1f),
-                        colors = need_colors,
-                    )
 
+                    Row(modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp), // Отступ между полем и кнопкой
+                        verticalAlignment = Alignment.CenterVertically) {
+
+                        OutlinedTextField(
+                            value = subject,
+                            onValueChange = { subject = it },
+                            label = { Text("Предмет", color = SetTextColor()) },
+                            modifier = Modifier.weight(1f),
+                            colors = need_colors,
+                        )
+                        IconButton(
+                            onClick = { dropdownExpanded = true },
+                            colors = IconButtonColors(
+                                containerColor = SetButtonColor(),
+                                disabledContainerColor = SetButtonColor(),
+                                contentColor = SetTextColor(),
+                                disabledContentColor = SetTextColor()
+                            )
+                        ) {
+                            Icon(imageVector = if (dropdownExpanded) Icons.Default.ArrowDropDown else Icons.Default.ArrowDropUp, contentDescription = "", modifier = Modifier.fillMaxSize())
+                        }
+
+                    }
+
+
+                    DropdownMenu(
+                        expanded = dropdownExpanded,
+                        onDismissRequest = { dropdownExpanded = false },
+                        modifier = Modifier.fillMaxWidth(0.7f),
+                        containerColor = SetTaskColor()
+                    ) {
+                        if (dbSubjects.isEmpty()) {
+                            DropdownMenuItem(
+                                text = { Text("Список пуст. Добавьте в меню", color = SetTextColor()) },
+                                onClick = { dropdownExpanded = false }
+                            )
+                        } else {
+                            dbSubjects.forEach { item ->
+                                DropdownMenuItem(
+                                    text = { Text(item.name, color = SetTextColor()) },
+                                    onClick = {
+                                        subject = item.name // Записываем строку в поле ввода
+                                        dropdownExpanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
                 }
-
 
                 OutlinedTextField(
                     value = description,
@@ -205,11 +261,14 @@ fun AddTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, String, String)
 fun EditTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, String, String) -> Unit, taskitself: Task) {
 
     //Состояния на время диалога
+    val context = LocalContext.current
+    val dao = remember { AppDatabase.get(context).taskDao() }
+    val dbSubjects by dao.observeAllSubjects().collectAsState(initial = emptyList())
+    var dropdownExpanded by remember { mutableStateOf(false) }
     var subject by remember { mutableStateOf(taskitself.GetSubjectName()) }
     var description by remember { mutableStateOf(taskitself.GetDescription().replace("[NEWLINE]", "\n")) }
     var creationDate by remember {mutableStateOf(taskitself.GetCreationDate())}
     var expireDate by remember { mutableStateOf(taskitself.GetExpireDate()) }
-    val context = LocalContext.current
     val dateFormat = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
 
     //Нужно для того, чтобы обработать пустые поля при попытке ввода
@@ -288,15 +347,60 @@ fun EditTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, String, String
                 Row(modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp), // Отступ между полем и кнопкой
                     verticalAlignment = Alignment.CenterVertically) {
-                    OutlinedTextField(
-                        value = subject,
-                        onValueChange = { subject = it },
-                        label = { Text("Предмет", color = SetTextColor()) },
-                        modifier = Modifier.weight(1f),
-                        colors = need_colors,
-                    )
+
+                    Row(modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp), // Отступ между полем и кнопкой
+                        verticalAlignment = Alignment.CenterVertically) {
+
+                        OutlinedTextField(
+                            value = subject,
+                            onValueChange = { subject = it },
+                            label = { Text("Предмет", color = SetTextColor()) },
+                            modifier = Modifier.weight(1f),
+                            colors = need_colors,
+                        )
+                        IconButton(
+                            onClick = { dropdownExpanded = true },
+                            colors = IconButtonColors(
+                                containerColor = SetButtonColor(),
+                                disabledContainerColor = SetButtonColor(),
+                                contentColor = SetTextColor(),
+                                disabledContentColor = SetTextColor()
+                            )
+                        ) {
+                            Icon(imageVector = if (dropdownExpanded) Icons.Default.ArrowDropDown else Icons.Default.ArrowDropUp, contentDescription = "", modifier = Modifier.fillMaxSize())
+                        }
+
+                    }
+
+                    DropdownMenu(
+                        expanded = dropdownExpanded,
+                        onDismissRequest = { dropdownExpanded = false },
+                        modifier = Modifier.fillMaxWidth(0.7f),
+                        containerColor = SetTaskColor()
+                    ) {
+                        if (dbSubjects.isEmpty()) {
+                            DropdownMenuItem(
+                                text = { Text("Список пуст. Добавьте в меню", color = SetTextColor()) },
+                                onClick = { dropdownExpanded = false }
+                            )
+                        } else {
+                            dbSubjects.forEach { item ->
+                                DropdownMenuItem(
+                                    text = { Text(item.name, color = SetTextColor()) },
+                                    onClick = {
+                                        subject = item.name // Записываем строку в поле ввода
+                                        dropdownExpanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
 
                 }
+
+
+
                 OutlinedTextField(
                     value = description,
                     onValueChange = { description = it },

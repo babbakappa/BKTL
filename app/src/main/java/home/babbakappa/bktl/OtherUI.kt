@@ -2,6 +2,9 @@ package home.babbakappa.bktl
 
 import android.content.Intent
 import android.net.Uri
+import android.util.Log
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -25,6 +28,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -32,6 +36,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
 
 
 //Сам объект задача (прямоугольник) в интерфейсе
@@ -131,12 +136,31 @@ fun ThreeDotsMenu(onMenuClick: (DialogType) -> Unit) {
 
     val context = LocalContext.current
     val url = "https://github.com/babbakappa/BKTL"
+    var scope = rememberCoroutineScope()
+    val dao = remember { AppDatabase.get(context).taskDao() }
+    val taskList = remember { TaskList(dao) }
 
     val currentTextColor = SetTextColor()
     val currentBGColor = SetBGColor()
     val currentTaskColor = SetTaskColor()
 
     var expanded by remember { mutableStateOf(false) }
+
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            scope.launch {
+                val success = importTasksFromExcel(context, uri, taskList)
+                if (success) {
+                    // Здесь можно показать Toast "Импорт успешно завершен"
+                    Log.d("IMPORT", "Данные успешно импортированы")
+                } else {
+                    Log.e("IMPORT", "Ошибка при импорте данных")
+                }
+            }
+        }
+    }
 
     Column {
         IconButton(
@@ -173,6 +197,20 @@ fun ThreeDotsMenu(onMenuClick: (DialogType) -> Unit) {
                 onClick = {
                     expanded = false
                     onMenuClick(DialogType.EXPORT)
+                }
+            )
+            DropdownMenuItem(
+                text = { Text("Импортировать", color = currentTextColor) },
+                onClick = {
+                    expanded = false
+                    filePickerLauncher.launch("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                }
+            )
+            DropdownMenuItem(
+                text = { Text("Управление предметами", color = currentTextColor) },
+                onClick = {
+                    expanded = false
+                    onMenuClick(DialogType.SUBJECTS)
                 }
             )
             DropdownMenuItem(

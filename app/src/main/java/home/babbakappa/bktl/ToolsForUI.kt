@@ -20,6 +20,10 @@ import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.*
 import androidx.compose.ui.graphics.Color
+import org.apache.poi.ss.usermodel.WorkbookFactory
+import java.io.BufferedReader
+import java.io.InputStream
+import java.io.InputStreamReader
 
 private val deadlineFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
 
@@ -95,5 +99,73 @@ suspend fun exportTasksToExcel(context: Context, tasks: List<Task>): Uri? {
             e.printStackTrace()
             null
         }
+    }
+}
+
+// Функция для чтения Excel файла и сохранения в Room
+suspend fun importTasksFromExcel(context: Context, fileUri: Uri, taskList: TaskList): Boolean {
+    return try {
+        val inputStream: InputStream? = context.contentResolver.openInputStream(fileUri)
+        if (inputStream == null) return false
+
+        // Открываем воркбук с помощью Apache POI (или аналогичной библиотеки, используемой у вас)
+        val workbook = WorkbookFactory.create(inputStream)
+        val sheet = workbook.getSheetAt(0) ?: return false
+
+        // Начинаем с 1 строки, так как 0-я строка — это заголовки (Предмет, Описание и т.д.)
+        for (rowIndex in 1..sheet.lastRowNum) {
+            val row = sheet.getRow(rowIndex) ?: continue
+
+            // Читаем ячейки. Приводим к String, обрабатывая пустые значения
+            val subject = row.getCell(0)?.toString()?.trim() ?: ""
+            val description = row.getCell(1)?.toString()?.trim() ?: ""
+            val creationDate = row.getCell(2)?.toString()?.trim() ?: ""
+            val expireDate = row.getCell(3)?.toString()?.trim() ?: ""
+
+            // Проверяем валидность строки (как при создании в AddTaskDialog)
+            if (subject.isNotBlank() && description.isNotBlank() && creationDate.isNotBlank() && expireDate.isNotBlank()) {
+                // Добавляем в список задач (и, соответственно, в БД)
+                val realTask = taskList.CreateAndAddNewTaskWithReturn(subject, description, creationDate, expireDate)
+                // Сразу планируем уведомление для новой задачи
+                NotificationHelper.scheduleNotification(realTask, context)
+            }
+        }
+
+        workbook.close()
+        inputStream.close()
+        true // Импорт прошел успешно
+    } catch (e: Exception) {
+        e.printStackTrace()
+        false // Произошла ошибка
+    }
+}
+
+suspend fun addSubjectsRaw(rawText: String, dao: TaskDao) {
+    val lines = rawText.split(Regex("[\n,]+"))
+    lines.forEach { line ->
+        val trimmed = line.trim()
+        if (trimmed.isNotBlank() && !dao.hasSubject(trimmed)) {
+            dao.insertSubject(SubjectEntity(name = trimmed))
+        }
+    }
+}
+
+suspend fun importSubjectsFromTxt(context: Context, uri: Uri, dao: TaskDao): Boolean {
+    return try {
+        context.contentResolver.openInputStream(uri)?.use { inputStream ->
+            BufferedReader(InputStreamReader(inputStream)).use { reader ->
+                var line: String?
+                while (reader.readLine().also { line = it } != null) {
+                    val trimmed = line?.trim() ?: ""
+                    if (trimmed.isNotBlank() && !dao.hasSubject(trimmed)) {
+                        dao.insertSubject(SubjectEntity(name = trimmed))
+                    }
+                }
+            }
+        }
+        true
+    } catch (e: Exception) {
+        e.printStackTrace()
+        false
     }
 }
