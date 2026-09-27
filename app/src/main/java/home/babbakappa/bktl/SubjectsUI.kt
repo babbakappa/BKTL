@@ -196,6 +196,12 @@ fun SubjectsManagementDialog(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
+                    Button(
+                        onClick = onDismiss,
+                        colors = ButtonDefaults.buttonColors(containerColor = SetButtonColor())
+                    ) {
+                        Text("Закрыть", color = SetTextColor())
+                    }
                     TextButton(
                         onClick = {
                             scope.launch { dao.deleteAllSubjects() }
@@ -203,12 +209,6 @@ fun SubjectsManagementDialog(
                         colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
                     ) {
                         Text("Очистить все")
-                    }
-                    Button(
-                        onClick = onDismiss,
-                        colors = ButtonDefaults.buttonColors(containerColor = SetButtonColor())
-                    ) {
-                        Text("Закрыть", color = SetTextColor())
                     }
                 }
             }

@@ -203,7 +203,7 @@ fun ThreeDotsMenu(onMenuClick: (DialogType) -> Unit) {
                 text = { Text("Импортировать", color = currentTextColor) },
                 onClick = {
                     expanded = false
-                    filePickerLauncher.launch("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                    filePickerLauncher.launch("*/*")
                 }
             )
             DropdownMenuItem(

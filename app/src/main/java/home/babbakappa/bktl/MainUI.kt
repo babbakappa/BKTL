@@ -265,14 +265,7 @@ fun TaskListApp() {
                     onClick = {
 
                         scope.launch {
-                            val uri = exportTasksToExcel(context, tasks) // tasks и context доступны тут
-                            if (uri != null) {
-                                val intent = Intent(Intent.ACTION_VIEW).apply {
-                                    setData(uri)
-                                    flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
-                                }
-                                context.startActivity(Intent.createChooser(intent, "Открыть отчёт"))
-                            }
+                            exportTasksToExcel(context, tasks)
                             dialog = null
                         }
 

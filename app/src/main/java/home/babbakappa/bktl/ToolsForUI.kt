@@ -24,6 +24,11 @@ import org.apache.poi.ss.usermodel.WorkbookFactory
 import java.io.BufferedReader
 import java.io.InputStream
 import java.io.InputStreamReader
+import android.content.ContentValues
+import android.os.Build
+import android.os.Environment
+import android.provider.MediaStore
+import android.widget.Toast
 
 private val deadlineFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
 
@@ -48,10 +53,7 @@ fun getDeadLineColor(other_date: String, pattern: String = "dd.MM.yyyy"): Color 
     return rescolor
 }
 
-
-
-//Функция для экспорта отчета в формате xlsx
-suspend fun exportTasksToExcel(context: Context, tasks: List<Task>): Uri? {
+suspend fun exportTasksToExcel(context: Context, tasks: List<Task>): Boolean {
     return withContext(Dispatchers.IO) {
         try {
             val workbook = XSSFWorkbook()
@@ -63,7 +65,6 @@ suspend fun exportTasksToExcel(context: Context, tasks: List<Task>): Uri? {
             headers.forEachIndexed { index, title ->
                 val cell = headerRow.createCell(index)
                 cell.setCellValue(title)
-                // Можно сделать жирным
                 val style = workbook.createCellStyle()
                 val font = workbook.createFont()
                 font.bold = true
@@ -80,27 +81,62 @@ suspend fun exportTasksToExcel(context: Context, tasks: List<Task>): Uri? {
                 row.createCell(3).setCellValue(task.GetExpireDate())
             }
 
-            // Автоширина колонок
             for (i in 0..3) {
                 sheet.setColumnWidth(i, 15 * 256)
             }
 
-            // Сохраняем во временный файл
             val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
             val fileName = "Отчёт_задач_$timeStamp.xlsx"
-            val cacheFile = File(context.cacheDir, fileName)
-            FileOutputStream(cacheFile).use { workbook.write(it) }
-            workbook.close()
 
-            // Возвращаем URI для Android 10+ через FileProvider
-            val authority = "${context.packageName}.fileprovider"
-            return@withContext FileProvider.getUriForFile(context, authority, cacheFile)
+            // Запись в зависимости от версии Android
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                // Для Android 10 (API 29) и выше используем MediaStore.Downloads
+                val resolver = context.contentResolver
+                val contentValues = ContentValues().apply {
+                    put(MediaStore.Downloads.DISPLAY_NAME, fileName)
+                    put(MediaStore.Downloads.MIME_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                    put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+                }
+
+                val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
+                if (uri != null) {
+                    resolver.openOutputStream(uri).use { workbook.write(it) }
+                    workbook.close()
+
+                    // Показываем Toast во внутреннем UI потоке
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(context, "Файл сохранен в Загрузки: $fileName", Toast.LENGTH_LONG).show()
+                    }
+                    return@withContext true
+                }
+            } else {
+                // Для старых версий Android (ниже Android 10) пишем по старинке напрямую в папку Downloads
+                val downloadDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+                if (!downloadDir.exists()) {
+                    downloadDir.mkdirs()
+                }
+                val file = File(downloadDir, fileName)
+                FileOutputStream(file).use { workbook.write(it) }
+                workbook.close()
+
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "Файл сохранен в Загрузки: $fileName", Toast.LENGTH_LONG).show()
+                }
+                return@withContext true
+            }
+
+            workbook.close()
+            false
         } catch (e: Exception) {
             e.printStackTrace()
-            null
+            withContext(Dispatchers.Main) {
+                Toast.makeText(context, "Ошибка при сохранении файла", Toast.LENGTH_SHORT).show()
+            }
+            false
         }
     }
 }
+
 
 // Функция для чтения Excel файла и сохранения в Room
 suspend fun importTasksFromExcel(context: Context, fileUri: Uri, taskList: TaskList): Boolean {
