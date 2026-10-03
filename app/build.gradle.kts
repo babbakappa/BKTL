@@ -53,7 +53,7 @@ android {
                 "proguard-rules.pro"
             )
 
-            //isZipAlignEnabled = true
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
     compileOptions {
