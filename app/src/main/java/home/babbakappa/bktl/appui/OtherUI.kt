@@ -1,4 +1,4 @@
-package home.babbakappa.bktl
+package home.babbakappa.bktl.appui
 
 import android.content.Intent
 import android.net.Uri
@@ -6,12 +6,12 @@ import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -22,7 +22,6 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonColors
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -31,11 +30,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import home.babbakappa.bktl.database.AppDatabase
+import home.babbakappa.bktl.core.Task
+import home.babbakappa.bktl.core.TaskList
+import home.babbakappa.bktl.other.getDeadLineColor
+import home.babbakappa.bktl.other.importTasksFromExcel
 import kotlinx.coroutines.launch
 
 
@@ -46,24 +49,12 @@ fun TaskItem(task: Task,
              onClick: () -> Unit,
              doTheButtons: Boolean,
              onEditClick: () -> Unit,
-             onDeleteClick: () -> Unit,
-             defcolor: Color,
-             selcolor: Color) {
-
-    //Цвет если выделено или не выделено
-    var rescolor: Color
-    if (isSelected) {
-        rescolor = selcolor
-    }
-    else {
-        rescolor = defcolor
-    }
+             onDeleteClick: () -> Unit) {
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() },
-        colors = CardDefaults.cardColors(containerColor = rescolor),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -71,9 +62,9 @@ fun TaskItem(task: Task,
                 horizontalArrangement = Arrangement.SpaceBetween ) {
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     //Название предмета
-                    Text(task.GetSubjectName(), fontWeight = FontWeight.Bold, fontSize = 20.sp, color = SetTextColor())
+                    Text(task.GetSubjectName(), fontWeight = FontWeight.Bold, fontSize = 20.sp)
                     //Описание задачи
-                    Text(task.GetDescription().replace("[NEWLINE]", "\n"), fontSize = 16.sp, color = SetTextColor())
+                    Text(task.GetDescription().replace("[NEWLINE]", "\n"), fontSize = 16.sp)
                 }
 
             }
@@ -87,8 +78,7 @@ fun TaskItem(task: Task,
                     //Дата создания
                     Text(
                         "Создано: ${task.GetCreationDate()}",
-                        fontSize = 13.sp,
-                        color = SetTextColor()
+                        fontSize = 13.sp
                     )
 
                     //Определение цвета для даты дедлайна
@@ -102,9 +92,7 @@ fun TaskItem(task: Task,
                     Column() {
                         Row() {
                             IconButton(
-                                onClick = onEditClick,
-                                colors = IconButtonColors(containerColor = Color(0x00000000), disabledContainerColor = Color(0x00000000),
-                                    contentColor = SetTextColor(), disabledContentColor = SetTextColor())
+                                onClick = onEditClick
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Edit,
@@ -113,9 +101,7 @@ fun TaskItem(task: Task,
                             }
 
                             IconButton(
-                                onClick = onDeleteClick,
-                                colors = IconButtonColors(containerColor = Color(0x00000000), disabledContainerColor = Color(0x00000000),
-                                    contentColor = SetTextColor(), disabledContentColor = SetTextColor())
+                                onClick = onDeleteClick
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Delete,
@@ -139,10 +125,6 @@ fun ThreeDotsMenu(onMenuClick: (DialogType) -> Unit) {
     var scope = rememberCoroutineScope()
     val dao = remember { AppDatabase.get(context).taskDao() }
     val taskList = remember { TaskList(dao) }
-
-    val currentTextColor = SetTextColor()
-    val currentBGColor = SetBGColor()
-    val currentTaskColor = SetTaskColor()
 
     var expanded by remember { mutableStateOf(false) }
 
@@ -176,45 +158,45 @@ fun ThreeDotsMenu(onMenuClick: (DialogType) -> Unit) {
         DropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
-            containerColor = if (isSystemInDarkTheme()) currentBGColor else currentTaskColor
+            shape = RoundedCornerShape(16.dp)
         ) {
             DropdownMenuItem(
-                text = { Text("Удалить все", color = currentTextColor) },
+                text = { Text("Удалить все") },
                 onClick = {
                     expanded = false
                     onMenuClick(DialogType.DELETE_ALL)
                 }
             )
             DropdownMenuItem(
-                text = { Text("Архив задач", color = currentTextColor) },
+                text = { Text("Архив задач") },
                 onClick = {
                     expanded = false
                     onMenuClick(DialogType.ARCHIVE)
                 }
             )
             DropdownMenuItem(
-                text = { Text("Экспортировать", color = currentTextColor) },
+                text = { Text("Экспортировать (.xlsx)") },
                 onClick = {
                     expanded = false
                     onMenuClick(DialogType.EXPORT)
                 }
             )
             DropdownMenuItem(
-                text = { Text("Импортировать", color = currentTextColor) },
+                text = { Text("Импортировать (.xlsx)") },
                 onClick = {
                     expanded = false
                     filePickerLauncher.launch("*/*")
                 }
             )
             DropdownMenuItem(
-                text = { Text("Управление предметами", color = currentTextColor) },
+                text = { Text("Управление предметами") },
                 onClick = {
                     expanded = false
                     onMenuClick(DialogType.SUBJECTS)
                 }
             )
             DropdownMenuItem(
-                text = { Text("GitHub", color = currentTextColor) },
+                text = { Text("GitHub") },
                 onClick = {
                     expanded = false
                     val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))

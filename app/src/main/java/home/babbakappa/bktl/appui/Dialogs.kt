@@ -1,7 +1,8 @@
-package home.babbakappa.bktl
+package home.babbakappa.bktl.appui
 
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
+import android.text.format.DateFormat
 import android.util.Log
 import android.widget.DatePicker
 import android.widget.TimePicker
@@ -18,7 +19,6 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.ArrowDropUp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -26,9 +26,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonColors
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -39,13 +37,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import home.babbakappa.bktl.database.AppDatabase
+import home.babbakappa.bktl.core.Task
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -61,17 +60,6 @@ fun AddTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, String, String)
     var dropdownExpanded by remember { mutableStateOf(false) }
 
     Log.d("PERF", "dialog composed t=${System.currentTimeMillis()}")
-
-    //Ебучка цвет рамок и текста полей ввода
-    val need_colors = OutlinedTextFieldDefaults.colors(
-        focusedBorderColor = SetTextColor(),       // Цвет рамки при фокусе
-        unfocusedBorderColor = SetBGColor(),     // Цвет рамки без фокуса
-        focusedLabelColor = SetTextColor(),        // Цвет текста подсказки при фокусе
-        unfocusedLabelColor = SetBGColor(),       // Цвет текста подсказки без фокуса
-        focusedTextColor = SetTextColor(),
-        unfocusedTextColor = SetTextColor(),
-        cursorColor = SetTextColor()
-    )
 
     //Состояния на время диалога
     var subject by remember { mutableStateOf("") }
@@ -109,8 +97,7 @@ fun AddTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, String, String)
             modifier = Modifier
                 .fillMaxWidth(0.9f)
                 .padding(16.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-            colors = CardDefaults.cardColors(contentColor = SetTextColor(), containerColor = SetTopColor())
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text("Добавление задачи", fontSize = 20.sp, fontWeight = FontWeight.Bold)
@@ -129,18 +116,11 @@ fun AddTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, String, String)
                         OutlinedTextField(
                             value = subject,
                             onValueChange = { subject = it },
-                            label = { Text("Предмет", color = SetTextColor()) },
-                            modifier = Modifier.weight(1f),
-                            colors = need_colors,
+                            label = { Text("Предмет") },
+                            modifier = Modifier.weight(1f)
                         )
                         IconButton(
-                            onClick = { dropdownExpanded = true },
-                            colors = IconButtonColors(
-                                containerColor = SetButtonColor(),
-                                disabledContainerColor = SetButtonColor(),
-                                contentColor = SetTextColor(),
-                                disabledContentColor = SetTextColor()
-                            )
+                            onClick = { dropdownExpanded = true }
                         ) {
                             Icon(imageVector = if (dropdownExpanded) Icons.Default.ArrowDropDown else Icons.Default.ArrowDropUp, contentDescription = "", modifier = Modifier.fillMaxSize())
                         }
@@ -151,18 +131,17 @@ fun AddTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, String, String)
                     DropdownMenu(
                         expanded = dropdownExpanded,
                         onDismissRequest = { dropdownExpanded = false },
-                        modifier = Modifier.fillMaxWidth(0.7f),
-                        containerColor = SetTaskColor()
+                        modifier = Modifier.fillMaxWidth(0.7f)
                     ) {
                         if (dbSubjects.isEmpty()) {
                             DropdownMenuItem(
-                                text = { Text("Список пуст. Добавьте в меню", color = SetTextColor()) },
+                                text = { Text("Список пуст. Добавьте в меню") },
                                 onClick = { dropdownExpanded = false }
                             )
                         } else {
                             dbSubjects.forEach { item ->
                                 DropdownMenuItem(
-                                    text = { Text(item.name, color = SetTextColor()) },
+                                    text = { Text(item.name) },
                                     onClick = {
                                         subject = item.name // Записываем строку в поле ввода
                                         dropdownExpanded = false
@@ -176,9 +155,8 @@ fun AddTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, String, String)
                 OutlinedTextField(
                     value = description,
                     onValueChange = { description = it },
-                    label = { Text("Описание", color = SetTextColor()) },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = need_colors
+                    label = { Text("Описание") },
+                    modifier = Modifier.fillMaxWidth()
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -188,13 +166,12 @@ fun AddTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, String, String)
                     OutlinedTextField(
                         value = creationDate,
                         onValueChange = { creationDate = it },
-                        label = { Text("Создано", color = SetTextColor()) },
+                        label = { Text("Создано") },
                         modifier = Modifier.weight(1f),
-                        readOnly = true,
-                        colors = need_colors
+                        readOnly = true
                     )
-                    Button(onClick = { showDatePicker { creationDate = it } }, colors = ButtonDefaults.buttonColors(containerColor = SetButtonColor())) {
-                        Text("Выбрать", color = SetTextColor())
+                    Button(onClick = { showDatePicker { creationDate = it } }) {
+                        Text("Выбрать")
                     }
                 }
                 Row(
@@ -205,13 +182,12 @@ fun AddTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, String, String)
                     OutlinedTextField(
                         value = expireDate,
                         onValueChange = { expireDate = it },
-                        label = { Text("Дедлайн", color = SetTextColor()) },
+                        label = { Text("Дедлайн") },
                         modifier = Modifier.weight(1f),
-                        readOnly = true,
-                        colors = need_colors
+                        readOnly = true
                     )
-                    Button(onClick = { showDatePicker { expireDate = it } }, colors = ButtonDefaults.buttonColors(containerColor = SetButtonColor())) {
-                        Text("Выбрать", color = SetTextColor())
+                    Button(onClick = { showDatePicker { expireDate = it } }) {
+                        Text("Выбрать")
                     }
                 }
                 Spacer(modifier = Modifier.height(16.dp))
@@ -219,7 +195,7 @@ fun AddTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, String, String)
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End
                 ) {
-                    TextButton(onClick = onDismiss) { Text("Отмена", color = SetTextColor()) }
+                    TextButton(onClick = onDismiss) { Text("Отмена") }
                     Button(
                         onClick = {
                             if (subject.isNotBlank() && description.isNotBlank() && creationDate.isNotBlank() && expireDate.isNotBlank()) {
@@ -230,9 +206,8 @@ fun AddTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, String, String)
                             else {
                                 showValidationError = true
                             }
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = SetButtonColor())
-                    ) { Text("Создать", color = SetTextColor()) }
+                        }
+                    ) { Text("Создать") }
                 }
             }
         }
@@ -242,14 +217,13 @@ fun AddTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, String, String)
     if (showValidationError) {
         AlertDialog(
             onDismissRequest = { showValidationError = false },
-            title = { Text("Ошибка заполнения", color = SetTextColor()) },
-            text = { Text("Пожалуйста, заполните все поля формы перед сохранением.", color = SetTextColor()) },
+            title = { Text("Ошибка заполнения") },
+            text = { Text("Пожалуйста, заполните все поля формы перед сохранением.") },
             confirmButton = {
-                Button(onClick = { showValidationError = false }, colors = ButtonDefaults.buttonColors(containerColor = SetButtonColor())) {
-                    Text("ОК", color = SetTextColor())
+                Button(onClick = { showValidationError = false }) {
+                    Text("ОК")
                 }
-            },
-            containerColor = SetTopColor()
+            }
         )
     }
 }
@@ -298,7 +272,7 @@ fun EditTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, String, String
         val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
 
         val calendar = Calendar.getInstance()
-        val is24HourFormat = android.text.format.DateFormat.is24HourFormat(context)
+        val is24HourFormat = DateFormat.is24HourFormat(context)
 
         TimePickerDialog(
             context,
@@ -315,17 +289,6 @@ fun EditTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, String, String
         ).show()
     }
 
-    //Ебучка цвет рамок и текста полей ввода
-    val need_colors = OutlinedTextFieldDefaults.colors(
-        focusedBorderColor = SetTextColor(),       // Цвет рамки при фокусе
-        unfocusedBorderColor = SetBGColor(),     // Цвет рамки без фокуса
-        focusedLabelColor = SetTextColor(),        // Цвет текста подсказки при фокусе
-        unfocusedLabelColor = SetBGColor(),       // Цвет текста подсказки без фокуса
-        focusedTextColor = SetTextColor(),
-        unfocusedTextColor = SetTextColor(),
-        cursorColor = SetTextColor()
-    )
-
     //Основной диалог
     Dialog(
         onDismissRequest = onDismiss,
@@ -335,11 +298,10 @@ fun EditTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, String, String
             modifier = Modifier
                 .fillMaxWidth(0.9f)
                 .padding(16.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-            colors = CardDefaults.cardColors(containerColor = SetTopColor(), contentColor = SetTextColor())
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("Редактирование задачи", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = SetTextColor())
+                Text("Редактирование задачи", fontSize = 20.sp, fontWeight = FontWeight.Bold)
 
 
 
@@ -355,18 +317,11 @@ fun EditTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, String, String
                         OutlinedTextField(
                             value = subject,
                             onValueChange = { subject = it },
-                            label = { Text("Предмет", color = SetTextColor()) },
-                            modifier = Modifier.weight(1f),
-                            colors = need_colors,
+                            label = { Text("Предмет") },
+                            modifier = Modifier.weight(1f)
                         )
                         IconButton(
-                            onClick = { dropdownExpanded = true },
-                            colors = IconButtonColors(
-                                containerColor = SetButtonColor(),
-                                disabledContainerColor = SetButtonColor(),
-                                contentColor = SetTextColor(),
-                                disabledContentColor = SetTextColor()
-                            )
+                            onClick = { dropdownExpanded = true }
                         ) {
                             Icon(imageVector = if (dropdownExpanded) Icons.Default.ArrowDropDown else Icons.Default.ArrowDropUp, contentDescription = "", modifier = Modifier.fillMaxSize())
                         }
@@ -376,18 +331,17 @@ fun EditTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, String, String
                     DropdownMenu(
                         expanded = dropdownExpanded,
                         onDismissRequest = { dropdownExpanded = false },
-                        modifier = Modifier.fillMaxWidth(0.7f),
-                        containerColor = SetTaskColor()
+                        modifier = Modifier.fillMaxWidth(0.7f)
                     ) {
                         if (dbSubjects.isEmpty()) {
                             DropdownMenuItem(
-                                text = { Text("Список пуст. Добавьте в меню", color = SetTextColor()) },
+                                text = { Text("Список пуст. Добавьте в меню") },
                                 onClick = { dropdownExpanded = false }
                             )
                         } else {
                             dbSubjects.forEach { item ->
                                 DropdownMenuItem(
-                                    text = { Text(item.name, color = SetTextColor()) },
+                                    text = { Text(item.name) },
                                     onClick = {
                                         subject = item.name // Записываем строку в поле ввода
                                         dropdownExpanded = false
@@ -404,9 +358,8 @@ fun EditTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, String, String
                 OutlinedTextField(
                     value = description,
                     onValueChange = { description = it },
-                    label = { Text("Описание", color = SetTextColor()) },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = need_colors
+                    label = { Text("Описание") },
+                    modifier = Modifier.fillMaxWidth()
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -416,14 +369,12 @@ fun EditTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, String, String
                     OutlinedTextField(
                         value = creationDate,
                         onValueChange = { creationDate = it },
-                        label = { Text("Создано", color = SetTextColor()) },
+                        label = { Text("Создано") },
                         modifier = Modifier.weight(1f),
-                        readOnly = true,
-                        colors = need_colors
+                        readOnly = true
                     )
-                    Button(onClick = { showDatePicker { creationDate = it } },
-                        colors = ButtonDefaults.buttonColors(SetButtonColor())) {
-                        Text("Выбрать", color = SetTextColor())
+                    Button(onClick = { showDatePicker { creationDate = it } }) {
+                        Text("Выбрать")
                     }
                 }
                 Row(
@@ -434,14 +385,12 @@ fun EditTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, String, String
                     OutlinedTextField(
                         value = expireDate,
                         onValueChange = { expireDate = it },
-                        label = { Text("Дата дедлайна", color = SetTextColor())  },
+                        label = { Text("Дата дедлайна")  },
                         modifier = Modifier.weight(1f),
-                        readOnly = true,
-                        colors = need_colors
+                        readOnly = true
                     )
-                    Button(onClick = { showDatePicker{ expireDate = it } },
-                        colors = ButtonDefaults.buttonColors(SetButtonColor())) {
-                        Text("Выбрать", color = SetTextColor())
+                    Button(onClick = { showDatePicker{ expireDate = it } }) {
+                        Text("Выбрать")
                     }
                 }
                 Spacer(modifier = Modifier.height(16.dp))
@@ -449,7 +398,7 @@ fun EditTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, String, String
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End
                 ) {
-                    TextButton(onClick = onDismiss) { Text("Отмена", color = SetTextColor())  }
+                    TextButton(onClick = onDismiss) { Text("Отмена")  }
                     Button(
                         onClick = {
                             if (subject.isNotBlank() && creationDate.isNotBlank() && expireDate.isNotBlank() && description.isNotBlank()) {
@@ -460,9 +409,8 @@ fun EditTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, String, String
                             else {
                                 showValidationError = true
                             }
-                        },
-                        colors = ButtonDefaults.buttonColors(SetButtonColor())
-                    ) { Text("Изменить", color = SetTextColor()) }
+                        }
+                    ) { Text("Изменить") }
                 }
             }
         }
@@ -472,14 +420,13 @@ fun EditTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, String, String
     if (showValidationError) {
         AlertDialog(
             onDismissRequest = { showValidationError = false },
-            title = { Text("Ошибка заполнения", color = SetTextColor()) },
-            text = { Text("Пожалуйста, заполните все поля формы перед сохранением.", color = SetTextColor()) },
+            title = { Text("Ошибка заполнения") },
+            text = { Text("Пожалуйста, заполните все поля формы перед сохранением.") },
             confirmButton = {
-                Button(onClick = { showValidationError = false }, colors = ButtonDefaults.buttonColors(containerColor = SetButtonColor())) {
-                    Text("ОК", color = SetTextColor())
+                Button(onClick = { showValidationError = false }) {
+                    Text("ОК")
                 }
-            },
-            containerColor = SetTopColor()
+            }
         )
     }
 }

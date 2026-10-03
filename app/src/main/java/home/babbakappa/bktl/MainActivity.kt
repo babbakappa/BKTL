@@ -6,10 +6,18 @@ import android.content.pm.PackageManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import android.os.Bundle
-import androidx.compose.material3.*
 import android.os.Build
 import android.util.Log
 import androidx.core.view.WindowCompat
+import home.babbakappa.bktl.appui.TaskListApp
+import home.babbakappa.bktl.core.ArchiveFilePath
+import home.babbakappa.bktl.core.DBFilePath
+import home.babbakappa.bktl.core.LoadArrayFromFile
+import home.babbakappa.bktl.database.AppDatabase
+import home.babbakappa.bktl.database.AppScope
+import home.babbakappa.bktl.database.TaskEntity
+import home.babbakappa.bktl.other.NotificationHelper
+import home.babbakappa.bktl.ui.theme.BKTLTheme
 import kotlinx.coroutines.launch
 import java.io.File
 
@@ -42,7 +50,7 @@ class MainActivity : ComponentActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
         setContent {
-            MaterialTheme {
+            BKTLTheme {
                 TaskListApp()
             }
         }
@@ -78,30 +86,34 @@ class MainActivity : ComponentActivity() {
             activeTasks.forEach { t ->
                 dao.insert(
                     TaskEntity(
-                        subjectName  = t.GetSubjectName(),
-                        description  = t.GetDescription(),
+                        subjectName = t.GetSubjectName(),
+                        description = t.GetDescription(),
                         creationDate = t.GetCreationDate(),
-                        expireDate   = t.GetExpireDate(),
-                        isArchived   = false
+                        expireDate = t.GetExpireDate(),
+                        isArchived = false
                     )
                 )
             }
             archivedTasks.forEach { t ->
                 dao.insert(
                     TaskEntity(
-                        subjectName  = t.GetSubjectName(),
-                        description  = t.GetDescription(),
+                        subjectName = t.GetSubjectName(),
+                        description = t.GetDescription(),
                         creationDate = t.GetCreationDate(),
-                        expireDate   = t.GetExpireDate(),
-                        isArchived   = true
+                        expireDate = t.GetExpireDate(),
+                        isArchived = true
                     )
                 )
             }
 
             // (опционально) чтобы миграция больше не запускалась —
             // переименуем старые файлы, чтобы понять, что перенос сделан.
-            File(filesDir, DBFilePath).let { if (it.exists()) it.renameTo(File(filesDir, "$DBFilePath.migrated")) }
-            File(filesDir, ArchiveFilePath).let { if (it.exists()) it.renameTo(File(filesDir, "$ArchiveFilePath.migrated")) }
+            File(filesDir,
+                DBFilePath
+            ).let { if (it.exists()) it.renameTo(File(filesDir, "${DBFilePath}.migrated")) }
+            File(filesDir,
+                ArchiveFilePath
+            ).let { if (it.exists()) it.renameTo(File(filesDir, "${ArchiveFilePath}.migrated")) }
         }
     }
 

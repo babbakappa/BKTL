@@ -2,7 +2,7 @@
 //Этот файл содержит класс Task, объект которого и явлется отдельным
 //заданием. Используется в нескольких файлах проекта
 
-package home.babbakappa.bktl
+package home.babbakappa.bktl.core
 
 import androidx.compose.runtime.Immutable
 

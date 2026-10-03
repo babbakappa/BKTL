@@ -1,4 +1,4 @@
-package home.babbakappa.bktl
+package home.babbakappa.bktl.appui
 
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -18,6 +18,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import home.babbakappa.bktl.database.TaskDao
+import home.babbakappa.bktl.other.addSubjectsRaw
+import home.babbakappa.bktl.other.importSubjectsFromTxt
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -46,16 +49,6 @@ fun SubjectsManagementDialog(
         }
     }
 
-    val textFieldColors = OutlinedTextFieldDefaults.colors(
-        focusedBorderColor = SetTextColor(),
-        unfocusedBorderColor = SetBGColor(),
-        focusedLabelColor = SetTextColor(),
-        unfocusedLabelColor = SetBGColor(),
-        focusedTextColor = SetTextColor(),
-        unfocusedTextColor = SetTextColor(),
-        cursorColor = SetTextColor()
-    )
-
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
@@ -65,16 +58,15 @@ fun SubjectsManagementDialog(
                 .fillMaxWidth(0.95f)
                 .heightIn(max = 650.dp)
                 .padding(8.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-            colors = CardDefaults.cardColors(containerColor = SetTopColor())
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("Управление предметами", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = SetTextColor())
+                Text("Управление предметами", fontSize = 20.sp, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(16.dp))
 
                 if (importMode == null) {
                     // Выбор способа добавления
-                    Text("Как вы хотите добавить предметы?", color = SetTextColor(), fontSize = 16.sp)
+                    Text("Как вы хотите добавить предметы?", fontSize = 16.sp)
                     Spacer(modifier = Modifier.height(12.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -82,20 +74,18 @@ fun SubjectsManagementDialog(
                     ) {
                         Button(
                             onClick = { importMode = "manual" },
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(containerColor = SetButtonColor())
+                            modifier = Modifier.weight(1f)
                         ) {
-                            Text("Вручную", color = SetTextColor())
+                            Text("Вручную")
                         }
                         Button(
                             onClick = {
                                 importMode = "file"
                                 txtPickerLauncher.launch("text/plain")
                             },
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(containerColor = SetButtonColor())
+                            modifier = Modifier.weight(1f)
                         ) {
-                            Text("Из файла (.txt)", color = SetTextColor())
+                            Text("Из файла (.txt)")
                         }
                     }
                 } else if (importMode == "manual") {
@@ -104,9 +94,8 @@ fun SubjectsManagementDialog(
                         OutlinedTextField(
                             value = manualInput,
                             onValueChange = { manualInput = it },
-                            label = { Text("Предметы (через запятую или Enter)", color = SetTextColor()) },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = textFieldColors
+                            label = { Text("Предметы (через запятую или Enter)") },
+                            modifier = Modifier.fillMaxWidth()
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Row(
@@ -115,7 +104,7 @@ fun SubjectsManagementDialog(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             TextButton(onClick = { importMode = null }) {
-                                Text("Назад", color = SetTextColor())
+                                Text("Назад")
                             }
                             Spacer(modifier = Modifier.width(8.dp))
                             Button(
@@ -127,10 +116,9 @@ fun SubjectsManagementDialog(
                                             importMode = null
                                         }
                                     }
-                                },
-                                colors = ButtonDefaults.buttonColors(containerColor = SetButtonColor())
+                                }
                             ) {
-                                Text("Добавить", color = SetTextColor())
+                                Text("Добавить")
                             }
                         }
                     }
@@ -141,18 +129,18 @@ fun SubjectsManagementDialog(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Файл выбран или операция отменена", color = SetTextColor())
+                        Text("Файл выбран или операция отменена")
                         TextButton(onClick = { importMode = null }) {
-                            Text("Назад", color = SetTextColor())
+                            Text("Назад")
                         }
                     }
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
-                Divider(color = SetBGColor(), thickness = 1.dp)
+                Divider(thickness = 1.dp)
                 Spacer(modifier = Modifier.height(12.dp))
 
-                Text("Существующие предметы (${subjects.size}):", fontWeight = FontWeight.Bold, color = SetTextColor())
+                Text("Существующие предметы (${subjects.size}):", fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(8.dp))
 
                 // Список текущих предметов в БД с возможностью удаления
@@ -164,8 +152,7 @@ fun SubjectsManagementDialog(
                 ) {
                     items(subjects, key = { it.id }) { subject ->
                         Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(containerColor = SetTaskColor())
+                            modifier = Modifier.fillMaxWidth()
                         ) {
                             Row(
                                 modifier = Modifier
@@ -174,7 +161,7 @@ fun SubjectsManagementDialog(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(subject.name, color = SetTextColor(), fontSize = 16.sp, modifier = Modifier.weight(1f))
+                                Text(subject.name, fontSize = 16.sp, modifier = Modifier.weight(1f))
                                 IconButton(
                                     onClick = {
                                         scope.launch { dao.deleteSubject(subject) }
@@ -182,8 +169,7 @@ fun SubjectsManagementDialog(
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.Delete,
-                                        contentDescription = "Удалить предмет",
-                                        tint = MaterialTheme.colorScheme.error
+                                        contentDescription = "Удалить предмет"
                                     )
                                 }
                             }
@@ -197,16 +183,14 @@ fun SubjectsManagementDialog(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Button(
-                        onClick = onDismiss,
-                        colors = ButtonDefaults.buttonColors(containerColor = SetButtonColor())
+                        onClick = onDismiss
                     ) {
-                        Text("Закрыть", color = SetTextColor())
+                        Text("Закрыть")
                     }
                     TextButton(
                         onClick = {
                             scope.launch { dao.deleteAllSubjects() }
-                        },
-                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                        }
                     ) {
                         Text("Очистить все")
                     }

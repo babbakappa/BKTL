@@ -1,5 +1,6 @@
-package home.babbakappa.bktl
+package home.babbakappa.bktl.other
 
+import android.Manifest
 import android.app.AlarmManager
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -10,6 +11,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationManagerCompat
+import home.babbakappa.bktl.core.Task
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -71,7 +73,7 @@ object NotificationHelper {
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 // Проверяем наличие разрешения
-                if (context.checkSelfPermission(android.Manifest.permission.SCHEDULE_EXACT_ALARM) != PackageManager.PERMISSION_GRANTED) {
+                if (context.checkSelfPermission(Manifest.permission.SCHEDULE_EXACT_ALARM) != PackageManager.PERMISSION_GRANTED) {
                     // Используем AlarmClock как fallback
                     val alarmInfo = AlarmManager.AlarmClockInfo(notificationTime!!, pendingIntent)
                     alarmManager.setAlarmClock(alarmInfo, pendingIntent)

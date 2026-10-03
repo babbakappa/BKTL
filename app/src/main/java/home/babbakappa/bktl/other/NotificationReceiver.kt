@@ -1,4 +1,4 @@
-package home.babbakappa.bktl
+package home.babbakappa.bktl.other
 
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -6,6 +6,7 @@ import android.content.Intent
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import home.babbakappa.bktl.R
 
 class NotificationReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
@@ -19,7 +20,7 @@ class NotificationReceiver : BroadcastReceiver() {
 
         val notification = NotificationCompat.Builder(context, NotificationHelper.CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification_foreground)
-            .setContentTitle("Напоминание: $subject")
+            .setContentTitle("$subject")
             .setContentText("Задача на $date${if (description.isNotEmpty() && description != "None") "\n$description" else ""}")
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)

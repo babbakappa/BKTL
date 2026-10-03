@@ -3,7 +3,7 @@
 //самом деле обычные текстовые файлы, но это не важно), универсальны и для
 //основной БД, и для архивной БД
 
-package home.babbakappa.bktl
+package home.babbakappa.bktl.core
 import java.io.File //классика
 import java.io.IOException
 

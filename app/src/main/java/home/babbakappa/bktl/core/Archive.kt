@@ -1,5 +1,8 @@
-package home.babbakappa.bktl
+package home.babbakappa.bktl.core
 
+import home.babbakappa.bktl.database.TaskDao
+import home.babbakappa.bktl.database.toEntity
+import home.babbakappa.bktl.database.toTask
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 

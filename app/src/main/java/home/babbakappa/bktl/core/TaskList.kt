@@ -2,8 +2,12 @@
 //Файл класса TaskList, который содержит массив объектов Task, ну и по
 //сути один из главных файлов ядра приложения. Ипользуется в MainUI.kt
 
-package home.babbakappa.bktl
+package home.babbakappa.bktl.core
 
+import home.babbakappa.bktl.database.TaskDao
+import home.babbakappa.bktl.database.TaskEntity
+import home.babbakappa.bktl.database.toEntity
+import home.babbakappa.bktl.database.toTask
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -14,7 +18,14 @@ class TaskList(private val dao: TaskDao) {
         dao.observeActive().map { list -> list.map { it.toTask() } }
 
     suspend fun CreateAndAddNewTask(subjname: String, desc: String, cd: String, ed: String) {
-        dao.insert(TaskEntity(subjectName = subjname, description = desc, creationDate = cd, expireDate = ed))
+        dao.insert(
+            TaskEntity(
+                subjectName = subjname,
+                description = desc,
+                creationDate = cd,
+                expireDate = ed
+            )
+        )
     }
 
     suspend fun CreateAndAddNewTaskWithReturn(subjname: String, descr: String, cd: String, ed: String): Task {
@@ -39,6 +50,15 @@ class TaskList(private val dao: TaskDao) {
     }
 
     suspend fun EditTask(task: Task, subject: String, desc: String, cd: String, ed: String) {
-        dao.update(TaskEntity(id = task.GetId(), subjectName = subject, description = desc, creationDate = cd, expireDate = ed, isArchived = false))
+        dao.update(
+            TaskEntity(
+                id = task.GetId(),
+                subjectName = subject,
+                description = desc,
+                creationDate = cd,
+                expireDate = ed,
+                isArchived = false
+            )
+        )
     }
 }

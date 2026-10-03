@@ -2,22 +2,21 @@
 //Этот файл используется для отображения диалогового окна, в котором
 //находится список удаленных задач. Используется в MainUI.kt
 
-package home.babbakappa.bktl
+package home.babbakappa.bktl.appui
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
-import androidx.compose.material3.ButtonDefaults.buttonColors
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import home.babbakappa.bktl.core.Task
 
 //Функция диалога. Я бы ее лучше не трогал
 @Composable
@@ -40,18 +39,17 @@ fun ArchiveDialog(
                 .fillMaxWidth(1f)
                 .heightIn(max = 700.dp)
                 .padding(8.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-            colors = CardDefaults.cardColors(containerColor = SetTopColor())
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("Архив задач", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = SetTextColor())
+                Text("Архив задач", fontSize = 20.sp, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(8.dp))
                 if (archive.isEmpty()) {
                     Box(
                         modifier = Modifier.fillMaxWidth().height(200.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("Архив пуст", fontSize = 16.sp, color = SetTextColor())
+                        Text("Архив пуст", fontSize = 16.sp)
                     }
                 } else {
                     LazyColumn(
@@ -63,18 +61,17 @@ fun ArchiveDialog(
                         items(archive, key = { it.GetId() }) { task ->
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
-                                elevation = CardDefaults.cardElevation(2.dp),
-                                colors = CardDefaults.cardColors(containerColor = SetTaskColor())
+                                elevation = CardDefaults.cardElevation(2.dp)
                             ) {
                                 Column(modifier = Modifier.padding(8.dp)) {
-                                    Text(task.GetSubjectName(), fontWeight = FontWeight.Bold, color = SetTextColor())
-                                    Text(task.GetDescription().replace("[NEWLINE]", "\n"), fontSize = 12.sp, color = SetTextColor())
+                                    Text(task.GetSubjectName(), fontWeight = FontWeight.Bold)
+                                    Text(task.GetDescription().replace("[NEWLINE]", "\n"), fontSize = 12.sp)
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.SpaceBetween
                                     ) {
-                                        Text("Создано: ${task.GetCreationDate()}", fontSize = 10.sp, color = SetTextColor())
-                                        Text("Дедлайн: ${task.GetExpireDate()}", fontSize = 10.sp, color = SetTextColor())
+                                        Text("Создано: ${task.GetCreationDate()}", fontSize = 10.sp)
+                                        Text("Дедлайн: ${task.GetExpireDate()}", fontSize = 10.sp)
                                     }
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Row(
@@ -83,16 +80,12 @@ fun ArchiveDialog(
                                     ) {
                                         Button(
                                             onClick = { onRestore(task) },
-                                            modifier = Modifier.weight(1f),
-                                            colors = ButtonDefaults.buttonColors(SetButtonColor())
+                                            modifier = Modifier.weight(1f)
                                         ) {
-                                            Text("Восстановить", color = SetTextColor())
+                                            Text("Восстановить")
                                         }
                                         Button(
                                             onClick = { onDeleteForever(task) },
-                                            colors = buttonColors(
-                                                containerColor = MaterialTheme.colorScheme.error, contentColor = Color.White
-                                            ),
                                             modifier = Modifier.weight(1f)
                                         ) {
                                             Text("Удалить")
@@ -108,13 +101,9 @@ fun ArchiveDialog(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    TextButton(onClick = onDismiss) { Text("Закрыть", color = SetTextColor()) }
+                    TextButton(onClick = onDismiss) { Text("Закрыть") }
                     Button(
-                        onClick = onClearAll,
-                        colors = buttonColors(
-                            containerColor = MaterialTheme.colorScheme.error,
-                            contentColor = Color.White
-                        )
+                        onClick = onClearAll
                     ) {
                         Text("Очистить архив")
                     }

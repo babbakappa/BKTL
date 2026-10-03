@@ -1,9 +1,10 @@
-package home.babbakappa.bktl
+package home.babbakappa.bktl.database
 
 import android.content.Context
 import androidx.room.*
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import home.babbakappa.bktl.core.Task
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -79,7 +80,7 @@ interface TaskDao {
     suspend fun hasAnyTask(): Boolean
 
     @Query("SELECT * FROM subjects ORDER BY name ASC")
-    fun observeAllSubjects(): kotlinx.coroutines.flow.Flow<List<SubjectEntity>>
+    fun observeAllSubjects(): Flow<List<SubjectEntity>>
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertSubject(subject: SubjectEntity): Long

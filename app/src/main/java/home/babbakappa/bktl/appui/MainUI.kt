@@ -1,9 +1,8 @@
 //Файл MainUI.kt
 //Один из главных файлов, который отвечает за интерфейс приложения
 
-package home.babbakappa.bktl
+package home.babbakappa.bktl.appui
 
-import android.annotation.SuppressLint
 import android.app.Activity
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -17,11 +16,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material3.AlertDialog
-import android.content.Intent
-import android.net.Uri
 import android.util.Log
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -29,11 +24,15 @@ import androidx.compose.material.icons.filled.Add
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
+import home.babbakappa.bktl.database.AppDatabase
+import home.babbakappa.bktl.core.Archive
+import home.babbakappa.bktl.other.NotificationHelper
+import home.babbakappa.bktl.core.Task
+import home.babbakappa.bktl.core.TaskList
+import home.babbakappa.bktl.other.exportTasksToExcel
 
 enum class DialogType { ADD, DELETE_ALL, ARCHIVE, EXPORT, EDIT, SUBJECTS }
 
@@ -53,13 +52,6 @@ fun TaskListApp() {
             insetsController.isAppearanceLightStatusBars = !darkTheme
         }
     }
-
-    val currentTextColor = SetTextColor()
-    val currentTopColor = SetTopColor()
-    val currentBottomColor = SetBottomColor()
-    val currentTaskColor = SetTaskColor()
-    val currentSelectedTaskColor = SetSelectedTaskColor()
-    val currentButtonColor = SetButtonColor()
 
     val scope = rememberCoroutineScope()
 
@@ -105,18 +97,14 @@ fun TaskListApp() {
             { TopAppBar(
             title = {
                 Row(modifier = Modifier.fillMaxWidth().statusBarsPadding(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("Список задач универа", fontSize = 24.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(8.dp))
+                    Text("Список задач", fontSize = 24.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(8.dp))
                     ThreeDotsMenu(onMenuClick = { dialog = it })
                 }
-                    },
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = currentTopColor,
-                titleContentColor = currentTextColor
-            )
+                    }
         ) },
 
         //Нижняя панель, которая содержит все кнопки действий
-        bottomBar = { Surface(modifier = Modifier.fillMaxWidth().height((128).dp), tonalElevation = 6.dp, color = currentBottomColor) {
+        bottomBar = { Surface(modifier = Modifier.fillMaxWidth().height((128).dp), tonalElevation = 6.dp) {
 
             //Колонна со всеми кнопками
             Column(
@@ -136,9 +124,7 @@ fun TaskListApp() {
                     IconButton(
                         onClick = {
                             Log.d("PERF", "click t=${System.currentTimeMillis()}")
-                            dialog = DialogType.ADD},
-                        colors = IconButtonColors(contentColor = currentTextColor, containerColor = currentButtonColor,
-                            disabledContentColor = currentTextColor, disabledContainerColor = currentTopColor)
+                            dialog = DialogType.ADD}
                     ) {
                         Icon(
                             imageVector = Icons.Default.Add,
@@ -151,8 +137,7 @@ fun TaskListApp() {
 
             }
         }
-        },
-        containerColor = SetBGColor()
+        }
     )
 
     //Добавление виджетов в основной экран (сами задачи в виде прямоугольников
@@ -168,7 +153,7 @@ fun TaskListApp() {
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Text("Задач пока нет", fontSize = 20.sp, color = currentTextColor)
+                    Text("Задач пока нет", fontSize = 20.sp)
                 }
             }
 
@@ -193,9 +178,7 @@ fun TaskListApp() {
                             },
                             onDeleteClick = {
                                 moveToArchive(task)
-                            },
-                            defcolor = currentTaskColor,
-                            selcolor = currentSelectedTaskColor
+                            }
                         )
                     }
                 }
@@ -223,23 +206,21 @@ fun TaskListApp() {
         DialogType.DELETE_ALL -> {
             AlertDialog(
                 onDismissRequest = { dialog = null },
-                title = { Text("Удалить все задачи?", color = currentTextColor) },
-                text = { Text("Задачи будут перемещены в архив.", color = currentTextColor) },
+                title = { Text("Удалить все задачи?") },
+                text = { Text("Задачи будут перемещены в архив.") },
                 confirmButton = {
                     Button(
                         onClick = {
                             moveAllToArchive()
                             dialog = null
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = currentButtonColor)
-                    ) { Text("Удалить всё",  color = currentTextColor) }
+                        }
+                    ) { Text("Удалить всё") }
                 },
                 dismissButton = {
                     TextButton(onClick = { dialog = null }) {
-                        Text("Отмена",  color = currentTextColor)
+                        Text("Отмена")
                     }
-                },
-                containerColor = currentTopColor
+                }
             )
         }
 
@@ -259,8 +240,8 @@ fun TaskListApp() {
         DialogType.EXPORT -> {
             AlertDialog(
                 onDismissRequest = { dialog = null },
-                title = { Text("Экспорт отчёта",  color = currentTextColor) },
-                text = { Text("Создать файл с текущими задачами?", color = currentTextColor) },
+                title = { Text("Экспорт отчёта") },
+                text = { Text("Создать файл с текущими задачами?") },
                 confirmButton = {Button(
                     onClick = {
 
@@ -269,15 +250,14 @@ fun TaskListApp() {
                             dialog = null
                         }
 
-                    },
-                    colors = ButtonDefaults.buttonColors(Color(0xFF107C41), Color.White)
+                    }
                 ) { Text("Экспортировать") }},
                 dismissButton = {
                     TextButton(onClick = {dialog = null} ) {
-                        Text("Отмена", color = currentTextColor)
+                        Text("Отмена")
                     }
                 }
-                ,containerColor = currentTopColor)
+            )
 
         }
 

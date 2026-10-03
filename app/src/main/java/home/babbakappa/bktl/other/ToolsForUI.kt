@@ -3,7 +3,7 @@
 //некоторых функций, таких как определения разницы между датами или
 //сохранения отчета в Excel
 
-package home.babbakappa.bktl
+package home.babbakappa.bktl.other
 
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -11,7 +11,6 @@ import java.time.temporal.ChronoUnit
 import android.content.Context
 import android.net.Uri
 import androidx.compose.runtime.Composable
-import androidx.core.content.FileProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
@@ -29,6 +28,12 @@ import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
 import android.widget.Toast
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.MaterialTheme
+import home.babbakappa.bktl.core.Task
+import home.babbakappa.bktl.core.TaskList
+import home.babbakappa.bktl.database.SubjectEntity
+import home.babbakappa.bktl.database.TaskDao
 
 private val deadlineFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
 
@@ -44,10 +49,10 @@ fun getDeadLineColor(other_date: String, pattern: String = "dd.MM.yyyy"): Color 
     val rescolor: Color
 
     when {
-        daysLeft < 0 -> rescolor = SetPurpleColor() //Просрочено совсем
-        daysLeft <= 2 -> rescolor = SetRedColor() //Горит (0-2 дня)
-        daysLeft <= 4 -> rescolor = SetYellowColor() //Предупреждение (3-4 дней)
-        else -> rescolor = SetTextColor()
+        daysLeft < 0 -> rescolor = Color(0xFFFF00FF) //Просрочено совсем
+        daysLeft <= 2 -> rescolor = Color.Red //Горит (0-2 дня)
+        daysLeft <= 4 -> rescolor = Color.Yellow //Предупреждение (3-4 дней)
+        else -> rescolor = MaterialTheme.colorScheme.onSurface
     }
 
     return rescolor
@@ -85,8 +90,8 @@ suspend fun exportTasksToExcel(context: Context, tasks: List<Task>): Boolean {
                 sheet.setColumnWidth(i, 15 * 256)
             }
 
-            val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
-            val fileName = "Отчёт_задач_$timeStamp.xlsx"
+            val timeStamp = SimpleDateFormat("yyyy-MM-dd_HH:mm:ss", Locale.getDefault()).format(Date())
+            val fileName = "Задачи_$timeStamp.xlsx"
 
             // Запись в зависимости от версии Android
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
