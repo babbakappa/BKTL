@@ -33,7 +33,7 @@ android {
         minSdk = 26
         targetSdk = 37
         versionCode = 1
-        versionName = "2.1"
+        versionName = "2.1.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -41,17 +41,12 @@ android {
     buildTypes {
         release {
             optimization {
-                enable = true
+                enable = false
             }
 
-            isMinifyEnabled = true
+            isMinifyEnabled = false
 
-            isShrinkResources = true
-
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
+            isShrinkResources = false
 
             signingConfig = signingConfigs.getByName("debug")
         }
