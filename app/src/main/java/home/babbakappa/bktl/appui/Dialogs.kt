@@ -1,3 +1,12 @@
+/* Dialogs.kt
+* Здесь находятся Composable функции диалогов, такие
+* как добавление и удаление задачи
+*
+* Да, тут функции AddTaskDialog и EditTaskDialog почти
+* один в один, поэтому позже сделаю так, чтобы была одна
+* функция, и в аргументы передавался флаг какой сценарий
+* применять */
+
 package home.babbakappa.bktl.appui
 
 import android.app.DatePickerDialog
@@ -239,10 +248,10 @@ fun EditTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, String, String
     val dao = remember { AppDatabase.get(context).taskDao() }
     val dbSubjects by dao.observeAllSubjects().collectAsState(initial = emptyList())
     var dropdownExpanded by remember { mutableStateOf(false) }
-    var subject by remember { mutableStateOf(taskitself.GetSubjectName()) }
-    var description by remember { mutableStateOf(taskitself.GetDescription().replace("[NEWLINE]", "\n")) }
-    var creationDate by remember {mutableStateOf(taskitself.GetCreationDate())}
-    var expireDate by remember { mutableStateOf(taskitself.GetExpireDate()) }
+    var subject by remember { mutableStateOf(taskitself.subject_name) }
+    var description by remember { mutableStateOf(taskitself.description.replace("[NEWLINE]", "\n")) }
+    var creationDate by remember {mutableStateOf(taskitself.creation_date)}
+    var expireDate by remember { mutableStateOf(taskitself.expire_date) }
     val dateFormat = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
 
     //Нужно для того, чтобы обработать пустые поля при попытке ввода

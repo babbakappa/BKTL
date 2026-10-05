@@ -1,7 +1,9 @@
-//Файл FileSys.kt
-//Этот файл содержит функции для взаимодействия с кастомными БД (которые на
-//самом деле обычные текстовые файлы, но это не важно), универсальны и для
-//основной БД, и для архивной БД
+/* FileSys.kt
+* Этот файл сейчас используется только как легаси и
+* для обратной совместимости со старыми версиями
+* приложения (но при обратном откате магия не сработает)
+*
+* Возможно в следующих версиях я удалю этот файл */
 
 package home.babbakappa.bktl.core
 import java.io.File //классика
@@ -18,10 +20,10 @@ fun SaveArrayToFile(arr: List<Task>, fp: String) {
     val sb = StringBuilder()
     sb.append(arr.size).append("\n")
     for (obj in arr) {
-        sb.append(obj.GetSubjectName()).append("\n")
-        sb.append(obj.GetDescription()).append("\n")
-        sb.append(obj.GetCreationDate()).append("\n")
-        sb.append(obj.GetExpireDate()).append("\n")
+        sb.append(obj.subject_name).append("\n")
+        sb.append(obj.description).append("\n")
+        sb.append(obj.creation_date).append("\n")
+        sb.append(obj.expire_date).append("\n")
     }
     try {
         //Записываем данные во временный файл
@@ -76,8 +78,7 @@ fun LoadArrayFromFile(fp: String): List<Task> {
         val desc = lines[base + 1]
         val cd = lines[base + 2]
         val ed = lines[base + 3]
-        val t = Task()
-        t.CreateTask(sn, desc, cd, ed)
+        val t = Task(sn, desc, cd, ed)
         result.add(t)
     }
     return result

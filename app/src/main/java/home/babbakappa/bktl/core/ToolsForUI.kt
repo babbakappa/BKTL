@@ -1,9 +1,8 @@
-//Файл ToolsForUI.kt
-//Функции этого файла используются в MainUI.kt, нужны для выполнения
-//некоторых функций, таких как определения разницы между датами или
-//сохранения отчета в Excel
+/* ToolsForUI.kt
+* Здесь находятся самые разные вспомогательные инструменты для
+* интерфейса приложения, например цвет даты дедлайна */
 
-package home.babbakappa.bktl.other
+package home.babbakappa.bktl.core
 
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -28,18 +27,17 @@ import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
 import android.widget.Toast
-import androidx.compose.material3.LocalContentColor
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
-import home.babbakappa.bktl.core.Task
-import home.babbakappa.bktl.core.TaskList
 import home.babbakappa.bktl.database.SubjectEntity
 import home.babbakappa.bktl.database.TaskDao
+import home.babbakappa.bktl.other.NotificationHelper
 
 private val deadlineFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
 
 //Функция для определения цвета чтобы подсветить дату дедлайна
 @Composable
-fun getDeadLineColor(other_date: String, pattern: String = "dd.MM.yyyy"): Color {
+fun getDeadLineColor(other_date: String): Color {
 
     val today = LocalDate.now()
     val deadline = LocalDate.parse(other_date, deadlineFormatter)
@@ -49,9 +47,9 @@ fun getDeadLineColor(other_date: String, pattern: String = "dd.MM.yyyy"): Color 
     val rescolor: Color
 
     when {
-        daysLeft < 0 -> rescolor = Color(0xFFFF00FF) //Просрочено совсем
+        daysLeft < 0 -> rescolor = Color(0xFFAA00AA) //Просрочено совсем
         daysLeft <= 2 -> rescolor = Color.Red //Горит (0-2 дня)
-        daysLeft <= 4 -> rescolor = Color.Yellow //Предупреждение (3-4 дней)
+        daysLeft <= 4 -> rescolor = if (isSystemInDarkTheme()) Color.Yellow else Color(0xFFFFCC00) //Предупреждение (3-4 дней)
         else -> rescolor = MaterialTheme.colorScheme.onSurface
     }
 
@@ -80,10 +78,10 @@ suspend fun exportTasksToExcel(context: Context, tasks: List<Task>): Boolean {
             // Данные
             tasks.forEachIndexed { index, task ->
                 val row = sheet.createRow(index + 1)
-                row.createCell(0).setCellValue(task.GetSubjectName())
-                row.createCell(1).setCellValue(task.GetDescription().replace("[NEWLINE]", "\n"))
-                row.createCell(2).setCellValue(task.GetCreationDate())
-                row.createCell(3).setCellValue(task.GetExpireDate())
+                row.createCell(0).setCellValue(task.subject_name)
+                row.createCell(1).setCellValue(task.description.replace("[NEWLINE]", "\n"))
+                row.createCell(2).setCellValue(task.creation_date)
+                row.createCell(3).setCellValue(task.expire_date)
             }
 
             for (i in 0..3) {

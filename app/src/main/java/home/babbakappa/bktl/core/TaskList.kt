@@ -1,6 +1,5 @@
-//Файл TaskList.kt
-//Файл класса TaskList, который содержит массив объектов Task, ну и по
-//сути один из главных файлов ядра приложения. Ипользуется в MainUI.kt
+/* TaskList.kt
+* Репозиторий для объектов Task */
 
 package home.babbakappa.bktl.core
 
@@ -29,20 +28,19 @@ class TaskList(private val dao: TaskDao) {
     }
 
     suspend fun CreateAndAddNewTaskWithReturn(subjname: String, descr: String, cd: String, ed: String): Task {
-        val temp = Task()
-        temp.CreateTask(subjname, descr, cd, ed)
+        val temp = Task(subjname, descr, cd, ed)
         val newId = dao.insert(temp.toEntity()) // Room выполняет это на фоновом потоке
-        temp.SetId(newId)
+        temp.id = newId
         return temp
     }
 
     suspend fun AddTask(t: Task) {
-        if (t.GetId() != 0L) dao.unarchive(t.GetId())
+        if (t.id != 0L) dao.unarchive(t.id)
         else dao.insert(t.toEntity())
     }
 
     suspend fun DeleteTask(task: Task) {
-        dao.archive(task.GetId())
+        dao.archive(task.id)
     }
 
     suspend fun DeleteEverything() {
@@ -50,15 +48,11 @@ class TaskList(private val dao: TaskDao) {
     }
 
     suspend fun EditTask(task: Task, subject: String, desc: String, cd: String, ed: String) {
-        dao.update(
-            TaskEntity(
-                id = task.GetId(),
-                subjectName = subject,
-                description = desc,
-                creationDate = cd,
-                expireDate = ed,
-                isArchived = false
-            )
-        )
+        // Обновляем объект в памяти, чтобы scheduleNotification получил свежие данные
+        task.subject_name = subject
+        task.description = desc
+        task.creation_date = cd
+        task.expire_date = ed
+        dao.update(task.toEntity())
     }
 }

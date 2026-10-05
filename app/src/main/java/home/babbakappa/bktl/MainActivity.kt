@@ -1,5 +1,5 @@
-//Файл MainActivity.kt
-//По сути самый обычный main, который запускает функцию из MainUI.kt
+/* MainActivity.kt
+* Точка старта приложения */
 
 package home.babbakappa.bktl
 import android.content.pm.PackageManager
@@ -50,6 +50,7 @@ class MainActivity : ComponentActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
         setContent {
+            /* Используем Material You для интерфейса */
             BKTLTheme {
                 TaskListApp()
             }
@@ -86,10 +87,10 @@ class MainActivity : ComponentActivity() {
             activeTasks.forEach { t ->
                 dao.insert(
                     TaskEntity(
-                        subjectName = t.GetSubjectName(),
-                        description = t.GetDescription(),
-                        creationDate = t.GetCreationDate(),
-                        expireDate = t.GetExpireDate(),
+                        subjectName = t.subject_name,
+                        description = t.description,
+                        creationDate = t.creation_date,
+                        expireDate = t.expire_date,
                         isArchived = false
                     )
                 )
@@ -97,10 +98,10 @@ class MainActivity : ComponentActivity() {
             archivedTasks.forEach { t ->
                 dao.insert(
                     TaskEntity(
-                        subjectName = t.GetSubjectName(),
-                        description = t.GetDescription(),
-                        creationDate = t.GetCreationDate(),
-                        expireDate = t.GetExpireDate(),
+                        subjectName = t.subject_name,
+                        description = t.description,
+                        creationDate = t.creation_date,
+                        expireDate = t.expire_date,
                         isArchived = true
                     )
                 )

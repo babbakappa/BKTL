@@ -1,3 +1,8 @@
+/* OtherUI.kt
+* В этом файле находятся другие компоненты интерфейса
+* приложения, такие как карточка с самой задачей и меню
+* три точки, которое находится на шапке экрана */
+
 package home.babbakappa.bktl.appui
 
 import android.content.Intent
@@ -22,6 +27,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -37,12 +43,12 @@ import androidx.compose.ui.unit.sp
 import home.babbakappa.bktl.database.AppDatabase
 import home.babbakappa.bktl.core.Task
 import home.babbakappa.bktl.core.TaskList
-import home.babbakappa.bktl.other.getDeadLineColor
-import home.babbakappa.bktl.other.importTasksFromExcel
+import home.babbakappa.bktl.core.getDeadLineColor
+import home.babbakappa.bktl.core.importTasksFromExcel
 import kotlinx.coroutines.launch
 
 
-//Сам объект задача (прямоугольник) в интерфейсе
+/* Карточка задачи */
 @Composable
 fun TaskItem(task: Task,
              isSelected: Boolean,
@@ -55,42 +61,41 @@ fun TaskItem(task: Task,
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() },
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(
+            containerColor =
+            if (isSelected) MaterialTheme.colorScheme.surfaceContainerLow
+            else MaterialTheme.colorScheme.surfaceContainerHighest)
     ) {
+
         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Row(modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween ) {
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    //Название предмета
-                    Text(task.GetSubjectName(), fontWeight = FontWeight.Bold, fontSize = 20.sp)
-                    //Описание задачи
-                    Text(task.GetDescription().replace("[NEWLINE]", "\n"), fontSize = 16.sp)
+
+                    Text(task.subject_name, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+
+                    Text(task.description.replace("[NEWLINE]", "\n"), fontSize = 16.sp)
                 }
 
             }
-            //Один ряд с двумя датами
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Column() {
+                Column {
 
-                    //Дата создания
-                    Text(
-                        "Создано: ${task.GetCreationDate()}",
-                        fontSize = 13.sp
-                    )
+                    Text("Создано: ${task.creation_date}", fontSize = 13.sp)
 
-                    //Определение цвета для даты дедлайна
-                    val color = getDeadLineColor(task.GetExpireDate())
-
-                    //Дата дедлайна
-                    Text("Дедлайн: ${task.GetExpireDate()}", fontSize = 13.sp, color = color)
+                    val color = getDeadLineColor(task.expire_date)
+                    Text("Дедлайн: ${task.expire_date}", fontSize = 13.sp, color = color)
                 }
 
                 if (doTheButtons) {
-                    Column() {
-                        Row() {
+                    Column {
+                        Row {
+
                             IconButton(
                                 onClick = onEditClick
                             ) {

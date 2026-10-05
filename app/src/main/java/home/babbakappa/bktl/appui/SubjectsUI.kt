@@ -1,3 +1,8 @@
+/* SubjectsUI.kt
+* Здесь находится Composable функция для отображения
+* диалогового окна при нажатии на "Управление предметами"
+* в меню на главном экране приложения */
+
 package home.babbakappa.bktl.appui
 
 import android.net.Uri
@@ -19,8 +24,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import home.babbakappa.bktl.database.TaskDao
-import home.babbakappa.bktl.other.addSubjectsRaw
-import home.babbakappa.bktl.other.importSubjectsFromTxt
+import home.babbakappa.bktl.core.addSubjectsRaw
+import home.babbakappa.bktl.core.importSubjectsFromTxt
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)

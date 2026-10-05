@@ -1,6 +1,7 @@
-//Файл ArchiveUI.kt
-//Этот файл используется для отображения диалогового окна, в котором
-//находится список удаленных задач. Используется в MainUI.kt
+/* ArchiveUI.kt
+* В этом файле находятся элементы интерфейса для архива
+* задач (удаленных задач, но которые еще можно восстановить)
+*/
 
 package home.babbakappa.bktl.appui
 
@@ -58,20 +59,20 @@ fun ArchiveDialog(
                             .heightIn(max = 300.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        items(archive, key = { it.GetId() }) { task ->
+                        items(archive, key = { it.id }) { task ->
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
                                 elevation = CardDefaults.cardElevation(2.dp)
                             ) {
                                 Column(modifier = Modifier.padding(8.dp)) {
-                                    Text(task.GetSubjectName(), fontWeight = FontWeight.Bold)
-                                    Text(task.GetDescription().replace("[NEWLINE]", "\n"), fontSize = 12.sp)
+                                    Text(task.subject_name, fontWeight = FontWeight.Bold)
+                                    Text(task.description.replace("[NEWLINE]", "\n"), fontSize = 12.sp)
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.SpaceBetween
                                     ) {
-                                        Text("Создано: ${task.GetCreationDate()}", fontSize = 10.sp)
-                                        Text("Дедлайн: ${task.GetExpireDate()}", fontSize = 10.sp)
+                                        Text("Создано: ${task.creation_date}", fontSize = 10.sp)
+                                        Text("Дедлайн: ${task.expire_date}", fontSize = 10.sp)
                                     }
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Row(

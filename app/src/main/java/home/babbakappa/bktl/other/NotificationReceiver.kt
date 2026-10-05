@@ -1,3 +1,7 @@
+/* NotificationReceiver.kt
+* Здесь находится класс, наследуемый от BroadcastReceiver,
+* чтобы собственно получать уведомления на телефон */
+
 package home.babbakappa.bktl.other
 
 import android.content.BroadcastReceiver

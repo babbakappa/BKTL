@@ -1,3 +1,8 @@
+/* RoomDB.kt
+* Файл, в котором находится таблица БД Room,
+* ее инициализация, ее ентити и SQL-запросы
+* для нее */
+
 package home.babbakappa.bktl.database
 
 import android.content.Context
@@ -29,19 +34,18 @@ data class SubjectEntity(
 )
 
 fun TaskEntity.toTask(): Task {
-    val t = Task()
-    t.SetId(id)
-    t.CreateTask(subjectName, description, creationDate, expireDate)
+    val t = Task(subjectName, description, creationDate, expireDate)
+    t.id = id
     return t
 }
 
 fun Task.toEntity(isArchived: Boolean = false): TaskEntity =
     TaskEntity(
-        id = GetId(),
-        subjectName = GetSubjectName(),
-        description = GetDescription(),
-        creationDate = GetCreationDate(),
-        expireDate = GetExpireDate(),
+        id = id,
+        subjectName = subject_name,
+        description = description,
+        creationDate = creation_date,
+        expireDate = expire_date,
         isArchived = isArchived
     )
 

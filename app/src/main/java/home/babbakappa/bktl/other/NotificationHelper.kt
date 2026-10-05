@@ -1,3 +1,11 @@
+/* NotificationHelper.kt
+* В этом файле написаны планирование, отмена и
+* получение уведомления о задаче за день до
+* дедлайна
+*
+* Потом переделаю так, чтобы можно было ставить время
+* алярма какое захочет пользователь */
+
 package home.babbakappa.bktl.other
 
 import android.Manifest
@@ -42,16 +50,16 @@ object NotificationHelper {
 
     fun scheduleNotification(task: Task, context: Context) {
 
-        Log.d("Notification", "Планируем для задачи: ${task.GetSubjectName()}, дата ${task.GetCreationDate()}, дата дедлайна ${task.GetExpireDate()}")
+        Log.d("Notification", "Планируем для задачи: ${task.subject_name}, дата ${task.creation_date}, дата дедлайна ${task.expire_date}")
 
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        val notificationId = task.hashCode()
+        val notificationId = task.id.toInt()
 
         val intent = Intent(context, NotificationReceiver::class.java).apply {
-            putExtra("subject", task.GetSubjectName())
-            putExtra("description", task.GetDescription())
-            putExtra("date", task.GetCreationDate())
-            putExtra("dedldate", task.GetExpireDate())
+            putExtra("subject", task.subject_name)
+            putExtra("description", task.description)
+            putExtra("date", task.creation_date)
+            putExtra("dedldate", task.expire_date)
             putExtra("notification_id", notificationId)
         }
 
@@ -62,22 +70,38 @@ object NotificationHelper {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        val notificationTime = getNotificationTime(task.expire_date)   // 00:00 дня "за день до дедлайна"
+        val deadlineEndTime  = getDeadlineEndTime(task.expire_date)    // 23:59:59 дня дедлайна
+        val now = System.currentTimeMillis()
 
-        val notificationTime = getNotificationTime(task.GetExpireDate())
-        Log.d("Notification", "Время уведомления (мс): $notificationTime, текущее: ${System.currentTimeMillis()}")
-        /*if (notificationTime == null || notificationTime < System.currentTimeMillis()) {
-            Log.w("Notification", "Время невалидно или уже прошло. Уведомление не запланировано")
-            return // Неверный формат или время уже прошло
-        }*/
+        Log.d("Notification", "Время уведомления (мс): $notificationTime, конец дня дедлайна: $deadlineEndTime, текущее: $now")
+
+        if (notificationTime == null || deadlineEndTime == null) {
+            Log.w("Notification", "Не удалось распарсить даты. Уведомление не запланировано")
+            return
+        }
+
+        val triggerTime: Long = when {
+            // Время напоминания ещё не наступило — планируем ровно на него
+            notificationTime > now -> notificationTime
+
+            // Время напоминания уже прошло (мы внутри "дня до дедлайна"),
+            // но дедлайн ещё не наступил — стреляем сразу
+            deadlineEndTime > now -> now + 5_000L
+
+            // Дедлайн уже прошёл — уведомление не нужно
+            else -> {
+                Log.w("Notification", "Дедлайн уже прошёл. Уведомление не запланировано")
+                return
+            }
+        }
 
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                // Проверяем наличие разрешения
                 if (context.checkSelfPermission(Manifest.permission.SCHEDULE_EXACT_ALARM) != PackageManager.PERMISSION_GRANTED) {
-                    // Используем AlarmClock как fallback
-                    val alarmInfo = AlarmManager.AlarmClockInfo(notificationTime!!, pendingIntent)
+                    val alarmInfo = AlarmManager.AlarmClockInfo(triggerTime, pendingIntent)
                     alarmManager.setAlarmClock(alarmInfo, pendingIntent)
-                    Log.d("Notification", "Уведомление запланировано через setAlarmClock (без точного разрешения)")
+                    Log.d("Notification", "Уведомление запланировано через setAlarmClock на $triggerTime")
                     return
                 }
             }
@@ -85,19 +109,18 @@ object NotificationHelper {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 alarmManager.setExactAndAllowWhileIdle(
                     AlarmManager.RTC_WAKEUP,
-                    notificationTime!!,
+                    triggerTime,
                     pendingIntent
                 )
             } else {
-                alarmManager.setExact(AlarmManager.RTC_WAKEUP, notificationTime!!, pendingIntent)
+                alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
             }
-            Log.d("Notification", "Уведомление успешно запланировано (ID $notificationId)")
+            Log.d("Notification", "Уведомление успешно запланировано на $triggerTime (ID $notificationId)")
         }
         catch (error: SecurityException) {
             Log.e("Notification", "SecurityException при планировании: ${error.message}")
-
             try {
-                alarmManager.setExact(AlarmManager.RTC_WAKEUP, notificationTime!!, pendingIntent)
+                alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
                 Log.d("Notification", "Уведомление запланировано через setExact (fallback)")
             } catch (e2: SecurityException) {
                 Log.e("Notification", "Ошибка и при fallback: ${e2.message}")
@@ -106,22 +129,41 @@ object NotificationHelper {
         catch (e: Exception) {
             Log.e("Notification", "Неизвестная ошибка: ${e.message}")
         }
+    }
 
+    // Конец дня дедлайна (23:59:59.999) — нужен, чтобы понять, наступил ли уже дедлайн
+    private fun getDeadlineEndTime(dateStr: String): Long? {
+        return try {
+            val format = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
+            val calendar = Calendar.getInstance().apply {
+                time = format.parse("$dateStr") ?: return null
+                set(Calendar.HOUR_OF_DAY, 23)
+                set(Calendar.MINUTE, 59)
+                set(Calendar.SECOND, 59)
+                set(Calendar.MILLISECOND, 999)
+            }
+            calendar.timeInMillis
+        } catch (e: Exception) {
+            Log.e("Notification", "Ошибка парсинга даты дедлайна: $dateStr", e)
+            null
+        }
     }
 
     fun cancelNotification(task: Task, context: Context) {
-        Log.d("Notification", "Отменяем уведомление для ${task.GetSubjectName()}")
+        Log.d("Notification", "Отменяем уведомление для ${task.subject_name}")
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val intent = Intent(context, NotificationReceiver::class.java)
         val pendingIntent = PendingIntent.getBroadcast(
-            context,
-            task.hashCode(),
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            context, task.id.toInt(), intent,
+            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
         )
-        alarmManager.cancel(pendingIntent)
-        NotificationManagerCompat.from(context).cancel(task.hashCode())
-        Log.d("Notification", "Уведомление отменено (ID ${task.hashCode()})")
+        if (pendingIntent != null) {
+            alarmManager.cancel(pendingIntent)
+            pendingIntent.cancel()
+        } else {
+            Log.d("Notification", "PendingIntent не найден — уведомление и не было запланировано")
+        }
+        NotificationManagerCompat.from(context).cancel(task.id.toInt())
     }
 
     fun rescheduleAll(tasks: List<Task>, context: Context) {

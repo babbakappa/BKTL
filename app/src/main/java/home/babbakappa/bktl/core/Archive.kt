@@ -1,3 +1,7 @@
+/* Archive.kt
+* Этот файл - репозиторий для удаленных (помещенных в
+* архив) задач */
+
 package home.babbakappa.bktl.core
 
 import home.babbakappa.bktl.database.TaskDao
@@ -12,12 +16,12 @@ class Archive(private val dao: TaskDao) {
         dao.observeArchived().map { list -> list.map { it.toTask() } }
 
     suspend fun AddTaskToArchive(obj: Task) {
-        if (obj.GetId() != 0L) dao.archive(obj.GetId())
+        if (obj.id != 0L) dao.archive(obj.id)
         else dao.insert(obj.toEntity().copy(isArchived = true))
     }
 
     suspend fun RemoveFromArchive(task: Task) {
-        dao.unarchive(task.GetId())
+        dao.unarchive(task.id)
     }
 
     suspend fun DeleteEverything() {
@@ -25,6 +29,6 @@ class Archive(private val dao: TaskDao) {
     }
 
     suspend fun DeleteForever(task: Task) {
-        dao.deleteById(task.GetId())
+        dao.deleteById(task.id)
     }
 }

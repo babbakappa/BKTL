@@ -1,5 +1,10 @@
-//Файл MainUI.kt
-//Один из главных файлов, который отвечает за интерфейс приложения
+/* MainUI.kt
+* Самый главный файл для интерфейса, управляет всем остальным
+* в приложении: остальные элементы интерфейса, репозиторий, БД,
+* планирование и удаление алярмов, экспорты и импорты
+*
+* Потом в приложении будет добавлен ViewModel и такого хаоса
+* не будет, хотя приложение и так быстро работает */
 
 package home.babbakappa.bktl.appui
 
@@ -32,7 +37,7 @@ import home.babbakappa.bktl.core.Archive
 import home.babbakappa.bktl.other.NotificationHelper
 import home.babbakappa.bktl.core.Task
 import home.babbakappa.bktl.core.TaskList
-import home.babbakappa.bktl.other.exportTasksToExcel
+import home.babbakappa.bktl.core.exportTasksToExcel
 
 enum class DialogType { ADD, DELETE_ALL, ARCHIVE, EXPORT, EDIT, SUBJECTS }
 
@@ -164,16 +169,16 @@ fun TaskListApp() {
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(tasks, key = { task -> task.GetId() }) { task ->
+                    items(tasks, key = { task -> task.id }) { task ->
                         TaskItem(
                             task = task,
-                            isSelected = selectedTaskId == task.GetId(), // Быстрое сравнение Long без indexOf
+                            isSelected = selectedTaskId == task.id, // Быстрое сравнение Long без indexOf
                             onClick = {
-                                selectedTaskId = if (selectedTaskId == task.GetId()) null else task.GetId()
+                                selectedTaskId = if (selectedTaskId == task.id) null else task.id
                             },
-                            doTheButtons = selectedTaskId == task.GetId(),
+                            doTheButtons = selectedTaskId == task.id,
                             onEditClick = {
-                                selectedTaskId = task.GetId()
+                                selectedTaskId = task.id
                                 dialog = DialogType.EDIT
                             },
                             onDeleteClick = {
@@ -264,18 +269,23 @@ fun TaskListApp() {
         //Если выбрано редактирование задачи
         DialogType.EDIT -> {
             val currentId = selectedTaskId
-            val task = tasks.find { it.GetId() == currentId }
+            val task = tasks.find { it.id == currentId }
             if (task != null) {
                 EditTaskDialog(
                     taskitself = task,
-                    onDismiss = { dialog = null },
+                    onDismiss = { dialog = null
+                        selectedIndex = null
+                        selectedTaskId = null
+                    },
                     onAdd = { subject, desc, cd, ed ->
+                        NotificationHelper.cancelNotification(task, context)   // главный поток
                         scope.launch {
-                            NotificationHelper.cancelNotification(task, context)
-                            taskList.EditTask(task, subject, desc, cd, ed)
+                            taskList.EditTask(task, subject, desc, cd, ed)     // suspend, мутирует task
                             NotificationHelper.scheduleNotification(task, context)
                         }
                         dialog = null
+                        selectedIndex = null
+                        selectedTaskId = null
                     }
                 )
             }
