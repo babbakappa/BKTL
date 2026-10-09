@@ -43,8 +43,8 @@ import androidx.compose.ui.unit.sp
 import home.babbakappa.bktl.database.AppDatabase
 import home.babbakappa.bktl.core.Task
 import home.babbakappa.bktl.core.TaskList
-import home.babbakappa.bktl.core.getDeadLineColor
-import home.babbakappa.bktl.core.importTasksFromExcel
+import home.babbakappa.bktl.other.getDeadLineColor
+import home.babbakappa.bktl.other.importTasksFromExcel
 import kotlinx.coroutines.launch
 
 
@@ -73,7 +73,7 @@ fun TaskItem(task: Task,
                 horizontalArrangement = Arrangement.SpaceBetween ) {
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
 
-                    Text(task.subject_name, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                    Text(task.subject_name, fontWeight = FontWeight.Bold, fontSize = 22.sp)
 
                     Text(task.description.replace("[NEWLINE]", "\n"), fontSize = 16.sp)
                 }
@@ -86,10 +86,10 @@ fun TaskItem(task: Task,
             ) {
                 Column {
 
-                    Text("Создано: ${task.creation_date}", fontSize = 13.sp)
+                    Text("Создано: ${task.creation_date}", fontSize = 14.sp, fontWeight = FontWeight.Bold)
 
                     val color = getDeadLineColor(task.expire_date)
-                    Text("Дедлайн: ${task.expire_date}", fontSize = 13.sp, color = color)
+                    Text("Дедлайн: ${task.expire_date}", fontSize = 14.sp, color = color, fontWeight = FontWeight.Bold)
                 }
 
                 if (doTheButtons) {
@@ -194,7 +194,7 @@ fun ThreeDotsMenu(onMenuClick: (DialogType) -> Unit) {
                 }
             )
             DropdownMenuItem(
-                text = { Text("Управление предметами") },
+                text = { Text("Управление разделами") },
                 onClick = {
                     expanded = false
                     onMenuClick(DialogType.SUBJECTS)

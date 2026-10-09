@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.ArrowDropUp
@@ -125,7 +126,7 @@ fun AddTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, String, String)
                         OutlinedTextField(
                             value = subject,
                             onValueChange = { subject = it },
-                            label = { Text("Предмет") },
+                            label = { Text("Название") },
                             modifier = Modifier.weight(1f)
                         )
                         IconButton(
@@ -140,7 +141,8 @@ fun AddTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, String, String)
                     DropdownMenu(
                         expanded = dropdownExpanded,
                         onDismissRequest = { dropdownExpanded = false },
-                        modifier = Modifier.fillMaxWidth(0.7f)
+                        modifier = Modifier.fillMaxWidth(0.7f),
+                        shape = RoundedCornerShape(16.dp)
                     ) {
                         if (dbSubjects.isEmpty()) {
                             DropdownMenuItem(
@@ -326,7 +328,7 @@ fun EditTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, String, String
                         OutlinedTextField(
                             value = subject,
                             onValueChange = { subject = it },
-                            label = { Text("Предмет") },
+                            label = { Text("Название") },
                             modifier = Modifier.weight(1f)
                         )
                         IconButton(
@@ -340,7 +342,8 @@ fun EditTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, String, String
                     DropdownMenu(
                         expanded = dropdownExpanded,
                         onDismissRequest = { dropdownExpanded = false },
-                        modifier = Modifier.fillMaxWidth(0.7f)
+                        modifier = Modifier.fillMaxWidth(0.7f),
+                        shape = RoundedCornerShape(16.dp)
                     ) {
                         if (dbSubjects.isEmpty()) {
                             DropdownMenuItem(

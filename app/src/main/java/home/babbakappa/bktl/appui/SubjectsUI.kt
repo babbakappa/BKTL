@@ -24,8 +24,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import home.babbakappa.bktl.database.TaskDao
-import home.babbakappa.bktl.core.addSubjectsRaw
-import home.babbakappa.bktl.core.importSubjectsFromTxt
+import home.babbakappa.bktl.other.addSubjectsRaw
+import home.babbakappa.bktl.other.importSubjectsFromTxt
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -66,12 +66,12 @@ fun SubjectsManagementDialog(
             elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("Управление предметами", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                Text("Управление разделами", fontSize = 20.sp, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(16.dp))
 
                 if (importMode == null) {
                     // Выбор способа добавления
-                    Text("Как вы хотите добавить предметы?", fontSize = 16.sp)
+                    Text("Как вы хотите добавить разделы?", fontSize = 16.sp)
                     Spacer(modifier = Modifier.height(12.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -99,7 +99,7 @@ fun SubjectsManagementDialog(
                         OutlinedTextField(
                             value = manualInput,
                             onValueChange = { manualInput = it },
-                            label = { Text("Предметы (через запятую или Enter)") },
+                            label = { Text("Названия (через запятую или Enter)") },
                             modifier = Modifier.fillMaxWidth()
                         )
                         Spacer(modifier = Modifier.height(8.dp))
@@ -145,7 +145,7 @@ fun SubjectsManagementDialog(
                 Divider(thickness = 1.dp)
                 Spacer(modifier = Modifier.height(12.dp))
 
-                Text("Существующие предметы (${subjects.size}):", fontWeight = FontWeight.Bold)
+                Text("Существующие разделы (${subjects.size}):", fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(8.dp))
 
                 // Список текущих предметов в БД с возможностью удаления
@@ -174,7 +174,7 @@ fun SubjectsManagementDialog(
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.Delete,
-                                        contentDescription = "Удалить предмет"
+                                        contentDescription = "Удалить раздел"
                                     )
                                 }
                             }

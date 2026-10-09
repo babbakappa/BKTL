@@ -37,7 +37,7 @@ import home.babbakappa.bktl.core.Archive
 import home.babbakappa.bktl.other.NotificationHelper
 import home.babbakappa.bktl.core.Task
 import home.babbakappa.bktl.core.TaskList
-import home.babbakappa.bktl.core.exportTasksToExcel
+import home.babbakappa.bktl.other.exportTasksToExcel
 
 enum class DialogType { ADD, DELETE_ALL, ARCHIVE, EXPORT, EDIT, SUBJECTS }
 
