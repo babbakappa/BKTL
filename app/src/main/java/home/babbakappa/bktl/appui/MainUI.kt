@@ -13,23 +13,30 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material3.AlertDialog
 import android.util.Log
+import android.widget.Button
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Sort
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 import home.babbakappa.bktl.database.AppDatabase
@@ -40,6 +47,8 @@ import home.babbakappa.bktl.core.TaskList
 import home.babbakappa.bktl.other.exportTasksToExcel
 
 enum class DialogType { ADD, DELETE_ALL, ARCHIVE, EXPORT, EDIT, SUBJECTS }
+enum class SortType {NONE, BY_NAME, BY_DEADLINE}
+enum class FilterType {NONE, BY_NAME}
 
 //Главная функция, в которой работает интерфейс и используется ядро приложения
 @Composable
@@ -63,6 +72,10 @@ fun TaskListApp() {
     //Текущий контекст приложения
     val context = LocalContext.current
 
+    var currentSortType by remember { mutableStateOf<SortType?>(SortType.NONE) }
+    var currentFilterType by remember { mutableStateOf<FilterType?>(FilterType.NONE) }
+    var searchQuery by remember { mutableStateOf("") }
+
     val dao = remember { AppDatabase.get(context).taskDao() }
     val taskList = remember { TaskList(dao) }
     val archive  = remember { Archive(dao) }
@@ -75,6 +88,11 @@ fun TaskListApp() {
     var selectedIndex by remember { mutableStateOf<Int?>(null) }
     var dialog by remember { mutableStateOf<DialogType?>(null) }
     var selectedTaskId by remember { mutableStateOf<Long?>(null) }
+
+    var dropdownSortExpanded by remember { mutableStateOf(false) }
+    var dSE_close by remember { mutableStateOf(false) }
+
+    var searchActive by remember { mutableStateOf(false) }
 
     fun moveToArchive(task: Task) {
         scope.launch {
@@ -97,51 +115,220 @@ fun TaskListApp() {
 
     //Основной экран приложения, содержит все, что есть
     Scaffold(
-        //Шапка приложения
-        topBar =
-            { TopAppBar(
-            title = {
-                Row(modifier = Modifier.fillMaxWidth().statusBarsPadding(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("Список задач", fontSize = 24.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(8.dp))
-                    ThreeDotsMenu(onMenuClick = { dialog = it })
-                }
-                    }
-        ) },
-
-        //Нижняя панель, которая содержит все кнопки действий
-        bottomBar = { Surface(modifier = Modifier.fillMaxWidth().height((128).dp), tonalElevation = 6.dp) {
-
-            //Колонна со всеми кнопками
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(8.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-
-                //Верхний ряд с кнопками "Добавить" и "Удалить выбранное"
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
+        topBar = {
+            Box(modifier = Modifier.statusBarsPadding()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(76.dp), // Высота шапки приложения
+                    contentAlignment = Alignment.Center
                 ) {
-                    val fb = 240
-                    //Кнопка добавления задачи
-                    IconButton(
-                        onClick = {
-                            Log.d("PERF", "click t=${System.currentTimeMillis()}")
-                            dialog = DialogType.ADD}
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = "Удалить",
-                            modifier = Modifier.width(fb.dp).height(fb.dp)
+                    if (!searchActive) {
+                        // 1. Стандартная шапка
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(end = 16.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                "Список задач",
+                                fontSize = 26.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 32.dp)
+                            )
+                            ThreeDotsMenu(onMenuClick = { dialog = it })
+                        }
+                    } else {
+                        // 2. Полностью симметричное поле ввода (без скрытых отступов M3)
+                        TextField(
+                            value = searchQuery,
+                            onValueChange = { newText ->
+                                searchQuery = newText
+                            },
+                            placeholder = { Text("Поиск по названию", fontSize = 16.sp) },
+                            leadingIcon = {
+                                IconButton(onClick = {
+                                    taskList.updateQuery(sort = SortType.NONE, filter = FilterType.BY_NAME, extra = searchQuery)
+                                })
+                                {
+                                    Icon(Icons.Default.Search, contentDescription = "Поиск")
+                                }
+                            },
+                            trailingIcon = {
+                                if (searchQuery.isNotEmpty()) {
+                                    IconButton(onClick = {
+                                        searchQuery = ""
+                                        taskList.updateQuery(sort = SortType.NONE, filter = FilterType.NONE)
+                                    }) {
+                                        Icon(Icons.Default.Close, contentDescription = "Очистить")
+                                    }
+                                }
+                            },
+                            singleLine = true,
+                            shape = RoundedCornerShape(28.dp), // Закругленные края как у SearchBar
+                            colors = TextFieldDefaults.colors(
+                                focusedIndicatorColor = Color.Transparent,   // Убираем нижнюю полоску
+                                unfocusedIndicatorColor = Color.Transparent, // Убираем нижнюю полоску
+                                disabledIndicatorColor = Color.Transparent
+                            ),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp) // Четкая высота поля
+                                .padding(horizontal = 16.dp) // Отступы слева и справа до краев экрана
                         )
                     }
+                }
+            }
+        },
+
+
+
+
+
+        //Нижняя панель, которая содержит все кнопки действий
+        bottomBar = {
+
+
+            BottomAppBar() {
+
+
+                Column(modifier = Modifier.fillMaxWidth().navigationBarsPadding(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center)  {
+
+
+                    Row(modifier = Modifier.fillMaxSize(),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        verticalAlignment = Alignment.CenterVertically) {
+
+                        /*Button(onClick = {
+                            // Твой SQL: ORDER BY subjectName
+                            taskList.updateQuery(sort = SortType.BY_NAME, filter = FilterType.NONE)
+                        }) {
+                            Text("по имени")
+                        }
+
+                        Button(onClick = {
+                            // Твой SQL: ORDER BY по частям даты (substr)
+                            taskList.updateQuery(sort = SortType.BY_DEADLINE, filter = FilterType.NONE)
+                        }) {
+                            Text("по дедлайну")
+                        }*/
+
+                        Column() {
+
+                            if (!dSE_close) {
+                                IconButton(onClick = {
+                                    dropdownSortExpanded = true
+                                }) {
+                                    Icon(
+                                        contentDescription = "Сортировка",
+                                        imageVector = Icons.Default.Sort,
+                                        modifier = Modifier.size(64.dp)
+                                    )
+                                }
+                            }
+                            else {
+                                IconButton(onClick = {
+                                    dSE_close = false
+                                    taskList.updateQuery(sort = SortType.NONE, filter = FilterType.NONE)
+                                }) {
+                                    Icon(
+                                        contentDescription = "Закрыть",
+                                        imageVector = Icons.Default.Close,
+                                        modifier = Modifier.size(64.dp)
+                                    )
+                                }
+                            }
+
+                            if (dropdownSortExpanded) {
+
+                                DropdownMenu(
+                                    expanded = dropdownSortExpanded,
+                                    onDismissRequest = { dropdownSortExpanded = false },
+                                    modifier = Modifier.fillMaxWidth(0.7f),
+                                    shape = RoundedCornerShape(16.dp)
+                                ) {
+                                    DropdownMenuItem(
+                                        text = { Text("По названиям") },
+                                        onClick = {
+                                            taskList.updateQuery(sort = SortType.BY_NAME, filter = FilterType.NONE)
+                                            dropdownSortExpanded = false
+                                            dSE_close = true
+                                        }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("По дедлайнам") },
+                                        onClick = {
+                                            taskList.updateQuery(sort = SortType.BY_DEADLINE, filter = FilterType.NONE)
+                                            dropdownSortExpanded = false
+                                            dSE_close = true
+                                        }
+                                    )
+                                }
+
+                            }
+
+                        }
+
+
+                        IconButton(
+                            onClick = { dialog = DialogType.ADD}
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = "Добавить",
+                                modifier = Modifier.size(64.dp)
+                            )
+                        }
+
+                        if (!searchActive) {
+
+                            IconButton(onClick = {
+                                searchActive = true
+                            }) {
+                                Icon(
+                                    contentDescription = "Поиск",
+                                    imageVector = Icons.Default.Search,
+                                    modifier = Modifier.size(64.dp)
+                                )
+                            }
+
+                        }
+                        else {
+                            IconButton(onClick = {
+                                searchActive = false
+                            }) {
+                                Icon(
+                                    contentDescription = "Закрыть",
+                                    imageVector = Icons.Default.Close,
+                                    modifier = Modifier.size(64.dp)
+                                )
+                            }
+                        }
+
+
+                    }
+
+                    /*Button(onClick = {
+                        currentSortType = SortType.NONE
+                        currentFilterType = FilterType.NONE
+                        searchQuery = "" // Очищаем строку
+                        taskList.updateQuery(sort = SortType.NONE, filter = FilterType.NONE) // Сбрасываем SQL
+                    } ) {
+                        Text("Сбросить")
+                    }*/
+
 
                 }
 
+
             }
-        }
+
+
+
         }
     )
 
@@ -158,7 +345,7 @@ fun TaskListApp() {
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Text("Задач пока нет", fontSize = 20.sp)
+                    Text("Нет задач", fontSize = 20.sp)
                 }
             }
 

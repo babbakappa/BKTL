@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
@@ -155,7 +156,8 @@ fun ThreeDotsMenu(onMenuClick: (DialogType) -> Unit) {
         ) {
             Icon(
                 imageVector = Icons.Default.MoreVert,
-                contentDescription = "Меню"
+                contentDescription = "Меню",
+                modifier = Modifier.size(32.dp)
             )
         }
 

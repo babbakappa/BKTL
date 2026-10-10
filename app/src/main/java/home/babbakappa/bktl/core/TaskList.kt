@@ -3,18 +3,44 @@
 
 package home.babbakappa.bktl.core
 
+import home.babbakappa.bktl.appui.FilterType
+import home.babbakappa.bktl.appui.SortType
 import home.babbakappa.bktl.database.TaskDao
 import home.babbakappa.bktl.database.TaskEntity
 import home.babbakappa.bktl.database.toEntity
 import home.babbakappa.bktl.database.toTask
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 
 
 class TaskList(private val dao: TaskDao) {
 
-    val tasksFlow: Flow<List<Task>> =
-        dao.observeActive().map { list -> list.map { it.toTask() } }
+    val querySettings = MutableStateFlow(Triple(SortType.NONE, FilterType.NONE, ""))
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    var tasksFlow: Flow<List<Task>> = querySettings.flatMapLatest { (sort, filter, extra) ->
+        val entityFlow = when {
+            // Если включен фильтр по конкретному имени/предмету
+            filter == FilterType.BY_NAME && extra.isNotEmpty() -> dao.onlySpecificSubjects(extra)
+
+            // Если включена сортировка
+            sort == SortType.BY_NAME -> dao.sortByNames()
+            sort == SortType.BY_DEADLINE -> dao.sortByExpireDate()
+
+            // По умолчанию дефолтный список
+            else -> dao.observeActive()
+        }
+
+        // Маппим результат в обычные Task объекты
+        entityFlow.map { list -> list.map { it.toTask() } }
+    }
+
+    fun updateQuery(sort: SortType, filter: FilterType, extra: String = "") {
+        querySettings.value = Triple(sort, filter, extra)
+    }
 
     suspend fun CreateAndAddNewTask(subjname: String, desc: String, cd: String, ed: String) {
         dao.insert(
@@ -55,4 +81,5 @@ class TaskList(private val dao: TaskDao) {
         task.expire_date = ed
         dao.update(task.toEntity())
     }
+
 }

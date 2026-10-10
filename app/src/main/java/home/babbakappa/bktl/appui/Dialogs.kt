@@ -56,6 +56,8 @@ import androidx.compose.ui.window.DialogProperties
 import home.babbakappa.bktl.database.AppDatabase
 import home.babbakappa.bktl.core.Task
 import java.text.SimpleDateFormat
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import java.util.Calendar
 import java.util.Locale
 
@@ -63,6 +65,9 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, String, String) -> Unit) {
+
+    val deadlineFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
+    val todayFormatted = LocalDate.now().format(deadlineFormatter)
 
     val context = LocalContext.current
     val dao = remember { AppDatabase.get(context).taskDao() }
@@ -74,7 +79,7 @@ fun AddTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, String, String)
     //Состояния на время диалога
     var subject by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
-    var creationDate by remember { mutableStateOf("") }
+    var creationDate by remember { mutableStateOf(todayFormatted) }
     var expireDate by remember { mutableStateOf("") }
     val dateFormat = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
 
@@ -176,7 +181,9 @@ fun AddTaskDialog(onDismiss: () -> Unit, onAdd: (String, String, String, String)
                 ) {
                     OutlinedTextField(
                         value = creationDate,
-                        onValueChange = { creationDate = it },
+                        onValueChange = {
+                            creationDate = it
+                        },
                         label = { Text("Создано") },
                         modifier = Modifier.weight(1f),
                         readOnly = true
