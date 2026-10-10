@@ -67,7 +67,7 @@ suspend fun exportTasksToExcel(context: Context, tasks: List<Task>): Boolean {
 
             // Заголовки
             val headerRow = sheet.createRow(0)
-            val headers = arrayOf("Предмет", "Описание", "Дата создания", "Дедлайн")
+            val headers = arrayOf("Название", "Описание", "Дата создания", "Дедлайн")
             headers.forEachIndexed { index, title ->
                 val cell = headerRow.createCell(index)
                 cell.setCellValue(title)
@@ -91,7 +91,7 @@ suspend fun exportTasksToExcel(context: Context, tasks: List<Task>): Boolean {
                 sheet.setColumnWidth(i, 15 * 256)
             }
 
-            val timeStamp = SimpleDateFormat("dd.MM.yyyy_HH:mm:ss", Locale.getDefault()).format(Date())
+            val timeStamp = SimpleDateFormat("dd.MM.yyyy_HH-mm-ss", Locale.getDefault()).format(Date())
             val fileName = "Задачи_$timeStamp.xlsx"
 
             // Запись в зависимости от версии Android
