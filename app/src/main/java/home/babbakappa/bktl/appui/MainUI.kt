@@ -37,6 +37,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 import home.babbakappa.bktl.database.AppDatabase
@@ -55,8 +56,15 @@ enum class FilterType {NONE, BY_NAME}
 @OptIn(ExperimentalMaterial3Api::class) //костыль для нормального запуска приложения из-за какой-то функции
 fun TaskListApp() {
 
+
+
     val view = LocalView.current
     val darkTheme = isSystemInDarkTheme()
+
+    val configuration = LocalConfiguration.current
+
+    val screenWidthDp = configuration.screenWidthDp.dp
+    val screenHeightDp = configuration.screenHeightDp.dp
 
     if (!view.isInEditMode) {
         SideEffect {
@@ -116,11 +124,12 @@ fun TaskListApp() {
     //Основной экран приложения, содержит все, что есть
     Scaffold(
         topBar = {
-            Box(modifier = Modifier.statusBarsPadding()) {
+                val neededHeight = screenHeightDp * 0.125f
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(76.dp), // Высота шапки приложения
+                        .height(neededHeight)
+                        .statusBarsPadding(), // Высота шапки приложения
                     contentAlignment = Alignment.Center
                 ) {
                     if (!searchActive) {
@@ -175,12 +184,11 @@ fun TaskListApp() {
                             ),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(56.dp) // Четкая высота поля
-                                .padding(horizontal = 16.dp) // Отступы слева и справа до краев экрана
+                                .fillMaxHeight()
+                                .padding(horizontal = 16.dp, vertical = 4.dp) // Отступы слева и справа до краев экрана
                         )
                     }
                 }
-            }
         },
 
 
@@ -190,8 +198,8 @@ fun TaskListApp() {
         //Нижняя панель, которая содержит все кнопки действий
         bottomBar = {
 
-
-            BottomAppBar() {
+            val neededHeight = screenHeightDp * 0.15f
+            Box(modifier = Modifier.fillMaxWidth().height(neededHeight)) {
 
 
                 Column(modifier = Modifier.fillMaxWidth().navigationBarsPadding(),
@@ -203,26 +211,14 @@ fun TaskListApp() {
                         horizontalArrangement = Arrangement.SpaceEvenly,
                         verticalAlignment = Alignment.CenterVertically) {
 
-                        /*Button(onClick = {
-                            // Твой SQL: ORDER BY subjectName
-                            taskList.updateQuery(sort = SortType.BY_NAME, filter = FilterType.NONE)
-                        }) {
-                            Text("по имени")
-                        }
-
-                        Button(onClick = {
-                            // Твой SQL: ORDER BY по частям даты (substr)
-                            taskList.updateQuery(sort = SortType.BY_DEADLINE, filter = FilterType.NONE)
-                        }) {
-                            Text("по дедлайну")
-                        }*/
-
                         Column() {
 
                             if (!dSE_close) {
                                 IconButton(onClick = {
                                     dropdownSortExpanded = true
-                                }) {
+                                },
+                                    enabled = !searchActive
+                                ) {
                                     Icon(
                                         contentDescription = "Сортировка",
                                         imageVector = Icons.Default.Sort,
@@ -273,9 +269,9 @@ fun TaskListApp() {
 
                         }
 
-
                         IconButton(
-                            onClick = { dialog = DialogType.ADD}
+                            onClick = { dialog = DialogType.ADD},
+                            enabled = searchActive == false && dSE_close == false
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Add,
@@ -288,7 +284,10 @@ fun TaskListApp() {
 
                             IconButton(onClick = {
                                 searchActive = true
-                            }) {
+                            },
+                                enabled = !dSE_close
+
+                            ) {
                                 Icon(
                                     contentDescription = "Поиск",
                                     imageVector = Icons.Default.Search,
@@ -311,16 +310,6 @@ fun TaskListApp() {
 
 
                     }
-
-                    /*Button(onClick = {
-                        currentSortType = SortType.NONE
-                        currentFilterType = FilterType.NONE
-                        searchQuery = "" // Очищаем строку
-                        taskList.updateQuery(sort = SortType.NONE, filter = FilterType.NONE) // Сбрасываем SQL
-                    } ) {
-                        Text("Сбросить")
-                    }*/
-
 
                 }
 
