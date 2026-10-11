@@ -12,15 +12,12 @@ import android.net.Uri
 import androidx.compose.runtime.Composable
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.*
 import androidx.compose.ui.graphics.Color
-import org.apache.poi.ss.usermodel.WorkbookFactory
 import java.io.BufferedReader
-import java.io.InputStream
 import java.io.InputStreamReader
 import android.content.ContentValues
 import android.os.Build
@@ -33,6 +30,8 @@ import home.babbakappa.bktl.core.Task
 import home.babbakappa.bktl.core.TaskList
 import home.babbakappa.bktl.database.SubjectEntity
 import home.babbakappa.bktl.database.TaskDao
+import java.io.OutputStream
+import java.io.OutputStreamWriter
 
 private val deadlineFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
 
@@ -59,79 +58,72 @@ fun getDeadLineColor(other_date: String): Color {
     return rescolor
 }
 
-suspend fun exportTasksToExcel(context: Context, tasks: List<Task>): Boolean {
+private fun escapeCsvField(field: String): String {
+    val cleanField = field.replace("[NEWLINE]", "\n")
+    if (cleanField.contains(",") || cleanField.contains("\"") || cleanField.contains("\n") || cleanField.contains("\r")) {
+        return "\"" + cleanField.replace("\"", "\"\"") + "\""
+    }
+    return cleanField
+}
+
+suspend fun exportTasksToCsv(context: Context, tasks: List<Task>): Boolean {
     return withContext(Dispatchers.IO) {
         try {
-            val workbook = XSSFWorkbook()
-            val sheet = workbook.createSheet("Задачи")
-
-            // Заголовки
-            val headerRow = sheet.createRow(0)
-            val headers = arrayOf("Название", "Описание", "Дата создания", "Дедлайн")
-            headers.forEachIndexed { index, title ->
-                val cell = headerRow.createCell(index)
-                cell.setCellValue(title)
-                val style = workbook.createCellStyle()
-                val font = workbook.createFont()
-                font.bold = true
-                style.setFont(font)
-                cell.cellStyle = style
-            }
-
-            // Данные
-            tasks.forEachIndexed { index, task ->
-                val row = sheet.createRow(index + 1)
-                row.createCell(0).setCellValue(task.subject_name)
-                row.createCell(1).setCellValue(task.description.replace("[NEWLINE]", "\n"))
-                row.createCell(2).setCellValue(task.creation_date)
-                row.createCell(3).setCellValue(task.expire_date)
-            }
-
-            for (i in 0..3) {
-                sheet.setColumnWidth(i, 15 * 256)
-            }
-
             val timeStamp = SimpleDateFormat("dd.MM.yyyy_HH-mm-ss", Locale.getDefault()).format(Date())
-            val fileName = "Задачи_$timeStamp.xlsx"
+            val fileName = "Задачи_$timeStamp.csv"
+
+            // Функция для записи данных в поток
+            val writeCsvToStream = { outputStream: OutputStream ->
+                OutputStreamWriter(outputStream, Charsets.UTF_8).use { writer ->
+                    // Записываем BOM для корректного отображения кириллицы в Excel
+                    writer.write("\uFEFF")
+
+                    // Заголовки
+                    writer.write("Название,Описание,Дата создания,Дедлайн\n")
+
+                    // Данные
+                    tasks.forEach { task ->
+                        val subject = escapeCsvField(task.subject_name)
+                        val description = escapeCsvField(task.description)
+                        val creationDate = escapeCsvField(task.creation_date)
+                        val expireDate = escapeCsvField(task.expire_date)
+
+                        writer.write("$subject,$description,$creationDate,$expireDate\n")
+                    }
+                }
+            }
 
             // Запись в зависимости от версии Android
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                // Для Android 10 (API 29) и выше используем MediaStore.Downloads
                 val resolver = context.contentResolver
                 val contentValues = ContentValues().apply {
                     put(MediaStore.Downloads.DISPLAY_NAME, fileName)
-                    put(MediaStore.Downloads.MIME_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                    put(MediaStore.Downloads.MIME_TYPE, "text/csv")
                     put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
                 }
 
                 val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
                 if (uri != null) {
-                    resolver.openOutputStream(uri).use { workbook.write(it) }
-                    workbook.close()
+                    resolver.openOutputStream(uri)?.use { writeCsvToStream(it) }
 
-                    // Показываем Toast во внутреннем UI потоке
                     withContext(Dispatchers.Main) {
                         Toast.makeText(context, "Файл сохранен в Загрузки: $fileName", Toast.LENGTH_LONG).show()
                     }
                     return@withContext true
                 }
             } else {
-                // Для старых версий Android (ниже Android 10) пишем по старинке напрямую в папку Downloads
                 val downloadDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
                 if (!downloadDir.exists()) {
                     downloadDir.mkdirs()
                 }
                 val file = File(downloadDir, fileName)
-                FileOutputStream(file).use { workbook.write(it) }
-                workbook.close()
+                FileOutputStream(file).use { writeCsvToStream(it) }
 
                 withContext(Dispatchers.Main) {
                     Toast.makeText(context, "Файл сохранен в Загрузки: $fileName", Toast.LENGTH_LONG).show()
                 }
                 return@withContext true
             }
-
-            workbook.close()
             false
         } catch (e: Exception) {
             e.printStackTrace()
@@ -144,41 +136,81 @@ suspend fun exportTasksToExcel(context: Context, tasks: List<Task>): Boolean {
 }
 
 
-// Функция для чтения Excel файла и сохранения в Room
-suspend fun importTasksFromExcel(context: Context, fileUri: Uri, taskList: TaskList): Boolean {
-    return try {
-        val inputStream: InputStream? = context.contentResolver.openInputStream(fileUri)
-        if (inputStream == null) return false
+suspend fun importTasksFromCsv(context: Context, fileUri: Uri, taskList: TaskList): Boolean {
+    return withContext(Dispatchers.IO) {
+        try {
+            val inputStream = context.contentResolver.openInputStream(fileUri) ?: return@withContext false
 
-        // Открываем воркбук с помощью Apache POI (или аналогичной библиотеки, используемой у вас)
-        val workbook = WorkbookFactory.create(inputStream)
-        val sheet = workbook.getSheetAt(0) ?: return false
+            BufferedReader(InputStreamReader(inputStream, Charsets.UTF_8)).use { reader ->
+                var line: String? = reader.readLine() // Читаем первую строку (заголовки)
+                if (line == null) return@withContext false
 
-        // Начинаем с 1 строки, так как 0-я строка — это заголовки (Предмет, Описание и т.д.)
-        for (rowIndex in 1..sheet.lastRowNum) {
-            val row = sheet.getRow(rowIndex) ?: continue
+                // Пропускаем BOM, если он есть в заголовке
+                if (line!!.startsWith("\uFEFF")) {
+                    line = line!!.substring(1)
+                }
 
-            // Читаем ячейки. Приводим к String, обрабатывая пустые значения
-            val subject = row.getCell(0)?.toString()?.trim() ?: ""
-            val description = row.getCell(1)?.toString()?.trim() ?: ""
-            val creationDate = row.getCell(2)?.toString()?.trim() ?: ""
-            val expireDate = row.getCell(3)?.toString()?.trim() ?: ""
+                // Парсинг CSV с учетом возможных кавычек и переносов строк внутри полей
+                val currentFields = mutableListOf<String>()
+                var insideQuotes = false
+                val fieldBuilder = StringBuilder()
 
-            // Проверяем валидность строки (как при создании в AddTaskDialog)
-            if (subject.isNotBlank() && description.isNotBlank() && creationDate.isNotBlank() && expireDate.isNotBlank()) {
-                // Добавляем в список задач (и, соответственно, в БД)
-                val realTask = taskList.CreateAndAddNewTaskWithReturn(subject, description, creationDate, expireDate)
-                // Сразу планируем уведомление для новой задачи
-                NotificationHelper.scheduleNotification(realTask, context)
+                while (reader.readLine().also { line = it } != null) {
+                    var i = 0
+                    while (i < line!!.length) {
+                        val c = line!![i]
+                        if (c == '"') {
+                            if (insideQuotes && i + 1 < line!!.length && line!![i + 1] == '"') {
+                                // Экранированная кавычка "" -> превращаем в одиночную "
+                                fieldBuilder.append('"')
+                                i++
+                            } else {
+                                // Переключаем режим нахождения внутри кавычек
+                                insideQuotes = !insideQuotes
+                            }
+                        } else if (c == ',' && !insideQuotes) {
+                            // Конец поля
+                            currentFields.add(fieldBuilder.toString().trim())
+                            fieldBuilder.setLength(0)
+                        } else {
+                            fieldBuilder.append(c)
+                        }
+                        i++
+                    }
+
+                    if (insideQuotes) {
+                        // Если строка закончилась, но кавычка не закрыта, значит перенос строки был внутри поля
+                        fieldBuilder.append("\n")
+                    } else {
+                        // Конец записи строки CSV
+                        currentFields.add(fieldBuilder.toString().trim())
+                        fieldBuilder.setLength(0)
+
+                        // Проверяем, что считались все 4 колонки
+                        if (currentFields.size >= 4) {
+                            val subject = currentFields[0]
+                            val description = currentFields[1]
+                            val creationDate = currentFields[2]
+                            val expireDate = currentFields[3]
+
+                            if (subject.isNotBlank() && description.isNotBlank() && creationDate.isNotBlank() && expireDate.isNotBlank()) {
+                                val realTask = taskList.CreateAndAddNewTaskWithReturn(subject, description, creationDate, expireDate)
+
+                                // Переключаемся на Main поток для вызова UI-планировщика уведомлений
+                                withContext(Dispatchers.Main) {
+                                    NotificationHelper.scheduleNotification(realTask, context)
+                                }
+                            }
+                        }
+                        currentFields.clear()
+                    }
+                }
             }
+            true
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
         }
-
-        workbook.close()
-        inputStream.close()
-        true // Импорт прошел успешно
-    } catch (e: Exception) {
-        e.printStackTrace()
-        false // Произошла ошибка
     }
 }
 

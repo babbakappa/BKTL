@@ -3,7 +3,6 @@
 
 package home.babbakappa.bktl.core
 
-
 data class Task(var subject_name: String,
                 var description: String,
                 var creation_date: String,

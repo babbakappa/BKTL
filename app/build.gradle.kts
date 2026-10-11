@@ -41,12 +41,17 @@ android {
     buildTypes {
         release {
             optimization {
-                enable = false
+                enable = true
             }
 
-            isMinifyEnabled = false
+            isMinifyEnabled = true
 
-            isShrinkResources = false
+            isShrinkResources = true
+
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
 
             signingConfig = signingConfigs.getByName("debug")
         }
@@ -93,8 +98,6 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)
-    implementation("org.apache.poi:poi-ooxml:5.2.3")
-    implementation("org.apache.poi:poi:5.2.3")
     implementation("androidx.compose.material:material-icons-extended")
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)

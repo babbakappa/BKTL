@@ -2,6 +2,7 @@
 * Точка старта приложения */
 
 package home.babbakappa.bktl
+
 import android.content.pm.PackageManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -10,16 +11,8 @@ import android.os.Build
 import android.util.Log
 import androidx.core.view.WindowCompat
 import home.babbakappa.bktl.appui.TaskListApp
-import home.babbakappa.bktl.core.ArchiveFilePath
-import home.babbakappa.bktl.core.DBFilePath
-import home.babbakappa.bktl.core.LoadArrayFromFile
-import home.babbakappa.bktl.database.AppDatabase
-import home.babbakappa.bktl.database.AppScope
-import home.babbakappa.bktl.database.TaskEntity
 import home.babbakappa.bktl.other.NotificationHelper
 import home.babbakappa.bktl.ui.theme.BKTLTheme
-import kotlinx.coroutines.launch
-import java.io.File
 
 class MainActivity : ComponentActivity() {
 
@@ -45,8 +38,6 @@ class MainActivity : ComponentActivity() {
             Log.d("Notification", "Запрошено разрешение SCHEDULE_EXACT_ALARM")
         }
 
-        migrateLegacyDataIfNeeded()
-
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
         setContent {
@@ -63,58 +54,6 @@ class MainActivity : ComponentActivity() {
         for (i in permissions.indices) {
             val granted = grantResults[i] == PackageManager.PERMISSION_GRANTED
             Log.d("Notification", "Разрешение ${permissions[i]} -> ${if (granted) "ДА" else "НЕТ"}")
-        }
-    }
-
-    private fun migrateLegacyDataIfNeeded() {
-        // Скоуп не блокирует UI
-        AppScope.launch {
-            val dao = AppDatabase.get(applicationContext).taskDao()
-
-            // Уже что-то есть в Room — выходим, миграция не нужна
-            if (dao.hasAnyTask()) return@launch
-
-            // Пути к старым файлам — как в MainUI
-            val dataFile    = File(filesDir, DBFilePath).absolutePath
-            val archiveFile = File(filesDir, ArchiveFilePath).absolutePath
-
-            val activeTasks   = LoadArrayFromFile(dataFile)
-            val archivedTasks = LoadArrayFromFile(archiveFile)
-
-            // Ничего мигрировать не надо
-            if (activeTasks.isEmpty() && archivedTasks.isEmpty()) return@launch
-
-            activeTasks.forEach { t ->
-                dao.insert(
-                    TaskEntity(
-                        subjectName = t.subject_name,
-                        description = t.description,
-                        creationDate = t.creation_date,
-                        expireDate = t.expire_date,
-                        isArchived = false
-                    )
-                )
-            }
-            archivedTasks.forEach { t ->
-                dao.insert(
-                    TaskEntity(
-                        subjectName = t.subject_name,
-                        description = t.description,
-                        creationDate = t.creation_date,
-                        expireDate = t.expire_date,
-                        isArchived = true
-                    )
-                )
-            }
-
-            // (опционально) чтобы миграция больше не запускалась —
-            // переименуем старые файлы, чтобы понять, что перенос сделан.
-            File(filesDir,
-                DBFilePath
-            ).let { if (it.exists()) it.renameTo(File(filesDir, "${DBFilePath}.migrated")) }
-            File(filesDir,
-                ArchiveFilePath
-            ).let { if (it.exists()) it.renameTo(File(filesDir, "${ArchiveFilePath}.migrated")) }
         }
     }
 

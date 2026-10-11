@@ -45,7 +45,7 @@ import home.babbakappa.bktl.core.Archive
 import home.babbakappa.bktl.other.NotificationHelper
 import home.babbakappa.bktl.core.Task
 import home.babbakappa.bktl.core.TaskList
-import home.babbakappa.bktl.other.exportTasksToExcel
+import home.babbakappa.bktl.other.exportTasksToCsv
 
 enum class DialogType { ADD, DELETE_ALL, ARCHIVE, EXPORT, EDIT, SUBJECTS }
 enum class SortType {NONE, BY_NAME, BY_DEADLINE}
@@ -178,8 +178,8 @@ fun TaskListApp() {
                             singleLine = true,
                             shape = RoundedCornerShape(28.dp), // Закругленные края как у SearchBar
                             colors = TextFieldDefaults.colors(
-                                focusedIndicatorColor = Color.Transparent,   // Убираем нижнюю полоску
-                                unfocusedIndicatorColor = Color.Transparent, // Убираем нижнюю полоску
+                                focusedIndicatorColor = Color.Transparent,
+                                unfocusedIndicatorColor = Color.Transparent,
                                 disabledIndicatorColor = Color.Transparent
                             ),
                             modifier = Modifier
@@ -427,7 +427,7 @@ fun TaskListApp() {
                     onClick = {
 
                         scope.launch {
-                            exportTasksToExcel(context, tasks)
+                            exportTasksToCsv(context, tasks)
                             dialog = null
                         }
 

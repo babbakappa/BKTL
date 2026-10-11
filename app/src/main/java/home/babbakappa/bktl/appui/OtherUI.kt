@@ -45,7 +45,7 @@ import home.babbakappa.bktl.database.AppDatabase
 import home.babbakappa.bktl.core.Task
 import home.babbakappa.bktl.core.TaskList
 import home.babbakappa.bktl.other.getDeadLineColor
-import home.babbakappa.bktl.other.importTasksFromExcel
+import home.babbakappa.bktl.other.importTasksFromCsv
 import kotlinx.coroutines.launch
 
 
@@ -139,7 +139,7 @@ fun ThreeDotsMenu(onMenuClick: (DialogType) -> Unit) {
     ) { uri: Uri? ->
         if (uri != null) {
             scope.launch {
-                val success = importTasksFromExcel(context, uri, taskList)
+                val success = importTasksFromCsv(context, uri, taskList)
                 if (success) {
                     // Здесь можно показать Toast "Импорт успешно завершен"
                     Log.d("IMPORT", "Данные успешно импортированы")
@@ -182,14 +182,14 @@ fun ThreeDotsMenu(onMenuClick: (DialogType) -> Unit) {
                 }
             )
             DropdownMenuItem(
-                text = { Text("Экспортировать (.xlsx)") },
+                text = { Text("Экспортировать (.csv)") },
                 onClick = {
                     expanded = false
                     onMenuClick(DialogType.EXPORT)
                 }
             )
             DropdownMenuItem(
-                text = { Text("Импортировать (.xlsx)") },
+                text = { Text("Импортировать (.csv)") },
                 onClick = {
                     expanded = false
                     filePickerLauncher.launch("*/*")
