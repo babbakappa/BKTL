@@ -298,6 +298,7 @@ fun TaskListApp() {
                         }
                         else {
                             IconButton(onClick = {
+                                taskList.updateQuery(sort = SortType.NONE, filter = FilterType.NONE)
                                 searchActive = false
                             }) {
                                 Icon(
